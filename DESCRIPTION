@@ -1,0 +1,12 @@
+Package: XR
+Type: Package
+Title: Extending R: Central Functionality
+Version: 0.5
+Date: 2015-01-24
+Author: John M. Chambers
+Maintainer: John Chambers <jmc@r-project.org>
+Description: Common Functionality for the XR packages
+License: BSD
+Imports: methods
+NeedsCompilation: no
+Packaged: 2015-09-10 13:16:26 UTC; jmc
