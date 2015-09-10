@@ -324,7 +324,7 @@ loadProxyClasses <- function(classes, module ="", evaluator = XR::getInterface()
 ServerClassDef <- setRefClass("ServerClassDef",
                            fields  = c( methods = "namedList", fields = "namedList",
                            privateMethods = "namedList", privateFields = "namedList",
-                           operators = "namedList"))
+                           operators = "namedList", readOnly = "character"))
 
 ServerClassDef$methods("initialize" =
           function(reflection = list(...), methods = NULL, fields = NULL, ...) {
