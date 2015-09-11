@@ -1,10 +1,19 @@
-exportPattern("^[[:alpha:]]+") # this will go away someday
-## export(Interface, InsideInterface)
-
-## export(ProxyClass, inferX)
 
 importFrom(jsonlite, fromJSON, toJSON)
 
 ## exports to ensure that the methods for class "Interface" use no non-exported object
 export(asRObject, asServerObject) # these would be exported anyway
-export(rmInterface, evaluatorNumber) # these probably would not.
+export(rmInterface, evaluatorNumber) # these might not.
+
+export(ProxyClassObject, vector_R)
+
+export(objectAsJSON)
+export(valueFromServer)
+export(nameQuote)
+export(objectDictionary)
+export(getInterface)
+
+export(setProxyClass, loadProxyClasses, dumpProxyClasses, dumpProxyFunctions)
+
+exportClass(ProxyClassObject, vector_R)
+exportClass(Interface)

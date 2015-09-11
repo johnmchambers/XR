@@ -2,13 +2,16 @@
 % Please edit documentation in R/Interface.R
 \docType{class}
 \name{vector_R-class}
+\alias{asRObject,vector_R-method}
 \alias{initialize,vector_R-method}
-\alias{vectorR}
+\alias{vector_R}
 \alias{vector_R-class}
 \title{A class that facilitates returning R vectors via a list in JSON}
 \usage{
 \S4method{initialize}{vector_R}(.Object, data,
   type = typeToClass(typeof(.Object@data)), missing)
+
+\S4method{asRObject}{vector_R}(object, evaluator)
 }
 \description{
 Server language code will return a dictionary in which data= is a JSON-style list
@@ -17,6 +20,12 @@ and type= is the R vector type desired.  See the asRObject() method described be
 \section{Methods (by generic)}{
 \itemize{
 \item \code{initialize}: Expects usually to get only the `data` argument.
+
+\item \code{asRObject}: To distinguish typed R vectors from a general JSON list, encode the
+desired data as an object from the "vector_R" class.
+Vector types whose elements cannot be represented in JSON (e..g, "complex") should
+be returned as a list of character strings in a format that R will parse as
+elements of the suitable vector object. (e.g, ".5+3i")
 }}
 \section{Slots}{
 

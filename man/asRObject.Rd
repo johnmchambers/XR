@@ -5,16 +5,23 @@
 \alias{asRObject}
 \alias{asRObject,ProxyObject-method}
 \alias{asRObject,list-method}
-\alias{asRObject,vector_R-method}
 \title{Specialize the R Object Returned from an Interface Evaluator}
 \usage{
 asRObject(object, evaluator)
 
 \S4method{asRObject}{ProxyObject}(object, evaluator)
 
-\S4method{asRObject}{vector_R}(object, evaluator)
-
 \S4method{asRObject}{list}(object, evaluator)
+}
+\arguments{
+\item{object}{An object constructed from the explicit representation as a dictionary.
+The elements of the dictionary will be converted into objects for the slots of the same
+name.  Application-written methods will re-interpret the object into the intended \R form,
+not necessarily from the same class.}
+
+\item{evaluator}{This argument will be supplied as the evaluator object doing the conversion.
+Therefore, methods may have one of the specific evaluator classes (e.g., \code{"PythonInterface"},
+in their signature.}
 }
 \description{
 The result of a server language expression is returned as a string, using the JSON
@@ -32,10 +39,18 @@ XR representation in terms of class and slots is not what's actually wanted.
 is expanded, by using the `Get()` method of the evaluator and calling `asRObject()` on the
 result.
 
-\item \code{vector_R}: To distinguish typed R vectors from a general JSON list, encode the
-desired data as an object from the "vector_R" class.
-
 \item \code{list}: Both lists and dictionaries will come here from the basic conversion.
 `names(object)` will either be NULL or all non-empty, from a dictionary.
 }}
+\section{Writing Application Methods}{
+
+Application packages will typically write methods for special classes, and often for classes
+themselves defined in the package.  One good reason is that the server language does not
+naturally return the eventually intended object in a convenient form; for example, because
+it does not have typed arrays.  Then a special class will be defined in \R.  The server code
+will generate a dictionary with the \code{".RClass"} element having the class name, plus
+whatever slots make sense.  The application method for \code{asRObject()} will take these
+slots and construct whatever object is really intended.  For an example, see the method
+for class \code{vector_R}.
+}
 

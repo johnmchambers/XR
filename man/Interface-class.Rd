@@ -25,38 +25,36 @@ evaluator.  Nearly always just the two names, separated by "."}
 \item{\code{proxyClassTable}}{An environment for all proxy classes known currently for this
 evaluator class.}
 
-\item{\code{asRMethods}}{A table of specialized methods for interpreting R objects returned from the server
-encoded in a dictionary with element ".RClass".}
-
-\item{\code{proxyObject}}{The object representing any proxy class for this inteface.  Usually from
+\item{\code{prototypeObject}}{The object representing any proxy class for this inteface.  Usually from
 a class defined by the specific interface package, to distinguish its proxy classes. This
 field is passed as the \code{prototype} argument in calls to \code{\link{asServerObject}}.}
 }}
 \section{Methods}{
 
 \describe{
+\item{\code{AddToPath(directory = base::tolower(languageName),
+  package = utils::packageName(topenv(parent.frame())), pos = NA)}}{Add the directory to the systemPath
+By default, appends to the path; if `pos` is given, inserts at that position.
+If both directory and package are omitted, the method looks for the package name in the
+calling function (suitable if the method call is from a package source file).}
+
 \item{\code{AsRObject(object)}}{Given an R object made up of vectors, lists and named tables, interpret that as a general R object,
 using a convention that may be specialized to the server language by overriding
 $AsRObject() or by methods for asRObject().  The argument will may be from a proxy class.}
 
-\item{\code{AsServerObject(object, prototype = proxyObject)}}{Given an R object return a string that, when evaluated in the server language gives
+\item{\code{AsServerObject(object, prototype = prototypeObject)}}{Given an R object return a string that, when evaluated in the server language gives
 a corresponding object in that language.  The default implementation uses the function
 XR::objectAsJSON, which returns a JSON string and assumes a function `objectFromJSON(string)`
 in the server. The conversion may be specialized to server language classes by methods for
 asServerObject() or objectAsJSON().}
 
-\item{\code{Call(fun, ..., .proxy = NA)}}{Call the server language function `fun`.  Each of the `...` arguments will be
+\item{\code{Call(fun, ..., .get = NA)}}{Call the server language function `fun`.  Each of the `...` arguments will be
 translated into a server language expression by the AsServerObject() method.}
 
-\item{\code{Command(...)}}{Like Eval(), but the value of the expression is ignored.  In particular, may be a command
+\item{\code{Command(expr, ...)}}{Like Eval(), but the value of the expression is ignored.  In particular, may be a command
 in the server language that is not an expression.}
 
-\item{\code{Convert(object, serverClass = "", .key = NULL)}}{Assign the converted version of `object` in the server language.
-If `.key` is specified, assign it under that name.  By default (and recommended)
-a proxy object in R provides the reference to the converted object.
-If `serverClass` is supplied, there should be a corresponding asServerObject() method.}
-
-\item{\code{Eval(expr, ..., .proxy = NA)}}{Evaluate `expr` and return the value, possibly as a proxy.
+\item{\code{Eval(expr, ..., .get = NA)}}{Evaluate `expr` and return the value, possibly as a proxy.
 Expressions are supplied as character strings to be parsed and
 evaluated by the server language. If `expr` has "%s" fields, they are filled in
 with the appropriate server language code equivalent to the `...` arguments.  If `expr` has
@@ -71,7 +69,7 @@ $Define() method of the evaluator}
 \item{\code{Import(module, ...)}}{Import the module.  The "Interface" method assumes a command "import" in the server
 language and does not handle any extra arguments (e.g., for importing specific members).}
 
-\item{\code{MethodCall(object, name, ..., .proxy = NA)}}{Call the server language method `name` on `object`, with arguments `...`,
+\item{\code{MethodCall(object, name, ..., .get = NA)}}{Call the server language method `name` on `object`, with arguments `...`,
 by default assuming a language in which the syntax is `object.name(...)`.
 To override with a different syntax, define field propertyFormat in the evaluator.
 Note that `name` must be a character string, not an evaluation in the server.}
@@ -80,12 +78,21 @@ Note that `name` must be a character string, not an evaluation in the server.}
 in the server is given by ServerGenerator(serverClass), by default just the class name.
 Typically called from the $Initialize() method of the proxy class.}
 
+\item{\code{ProxyClassName(serverClass)}}{If there is a proxy class defined corresponding to this serverClass, return the name
+of that class (typically pasted with the server langauge, separated by underscore).  If no
+such class is defined, return NA.}
+
 \item{\code{ProxyClassObject(object)}}{If `object` is an assigned proxy, check whether the serverClass is a known proxy class
 and if so, return an object from that class; otherwise return `object`.}
 
 \item{\code{ProxyName(new = TRUE)}}{A key for the next proxy object.  In the default strategy, this is a string
 "R_i_j" where i is the sequence code for the evaluator and j is the proxy count,
 incremented if `new` is TRUE}
+
+\item{\code{Send(object, serverClass = "", .key = NULL)}}{Send the converted version of `object` to the server language.
+If `.key` is specified, assign it under that name.  By default (and recommended)
+a proxy object in R provides the name for the converted object.
+If `serverClass` is supplied, there should be a corresponding asServerObject() method.}
 
 \item{\code{Serialize(object, file, append = FALSE)}}{Use the server language serialization to serialize `object` to the specified `file`.
 According to `append` either append to the file (default) or overwrite.
@@ -97,11 +104,15 @@ If no reflection information is available, return NULL (which this definition do
 Should return a list or reference object: "$fields" and "$methods" should be character
 vectors or named lists of the server fields and metohds.}
 
-\item{\code{ServerEval(expr, key, keepValue)}}{Must be defined by the server language interface: evaluates `expr`(a text string).
+\item{\code{ServerClassDef(Class, module, ...)}}{Individual interface packages will define this to return a named list or other object such that value$fields and value$methods are the server fields and methods, character vectors
+of names or named objects whose elements give further information.  This default version
+returns NULL, indicating that no metadata is available.}
+
+\item{\code{ServerEval(expr, key, get)}}{Must be defined by the server language interface: evaluates `expr`(a text string).
 If `key` is an empty string, `expr` is treated as a directive, with no defined value.
 Otherwise, `key` is a non-empty string, and the server
 object should be assigned with this name. The value returned is the R result, which may
-be an AssignedProxy() object. If `keepValue` is FALSE or the value judged simple enough,
+be an AssignedProxy() object. If `get` is TRUE or the value judged simple enough,
 it will be converted to an ordinary R object instead.}
 
 \item{\code{ServerExpression(...)}}{The arguments define an expression in the server language.
@@ -109,7 +120,7 @@ The first argument is a string; any others are objects to be substituted for %s 
 in the string.  These can include proxy objects or R data.}
 
 \item{\code{ServerRemove(key)}}{Should be defined by the server language interface:
-The reference previously created for `key` should be removed.
+    The reference previously created for `key` should be removed.
 What happens has no effect on the client side; the intent is to potentially recover memory.}
 
 \item{\code{ServerSerialize(key, file)}}{Serialize the proxy function corresponding to `key` to the specified `file`.
@@ -120,7 +131,20 @@ language. The default gets the object and serializes in R, so only works if conv
 language, of all the objects serialized to this file.  Because open connections can not
 generally be shared among languages, must unserialize the entire file.}
 
+\item{\code{Shell(endCode = "quit", prompt = ">>>: ", cont = "+++: ")}}{Starts an interactive shell.  Each line of input must be a complete expression
+or statement in the server language. To continue over multiple lines, append an unescaped
+backslash to all but the last line.}
+
+\item{\code{Source(filename)}}{Parse and evaluate the contents of the file.  This method is likely to be overriden for particular langauges
+with a directive to include the contents of the file.  The `XR` version reads the file and processes the entire contents
+as a single string, newlines inserted between lines of the file.}
+
 \item{\code{Unserialize(file, all = FALSE)}}{Unserialize the objects previously written to `file` by $Serialize().
 Returns a list of proxy objects (always a list even if only one object found).}
+
+\item{\code{finalize(...)}}{method called when the object is garbage collected.  A call to the $Quit() method
+also calls this method (recalling it later then does nothing).  In case some server action
+(like closing down a subprocess) is required, the $ServerQuit() method is called, and
+the evaluator is then removed from the table of interface evaluators.}
 }}
 

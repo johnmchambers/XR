@@ -725,14 +725,13 @@ generally be shared among languages, must unserialize the entire file.'
     }
 )
 
-#' @describeIn Interface-class Obtain the prototype object from the current interface or
-#' the specified evaluator.
+
 prototypeObject <- function(evaluator = getInterface())
     evaluator$prototypeObject
 
 #' Generate a Server Language Expression corresponding to an R Object
 #'
-#' Returns a string that can be inserted into a server language expression
+#' Returns a string that can be inserted into a server language expression.
 #' When parsed and evaluated by the server evaluator, the result
 #' will be the appropriate object or data.
 #'
@@ -770,43 +769,6 @@ setMethod("asServerObject", "AssignedProxy",
               as.character(object)
           )
 ## also a method in ProxyClass.R
-
-#'Class for Objects Converted from a Server Class
-#'
-setClass("from_Server",
-         slots = c(language = "character", Class = "character", module = "character",
-                    data = "ANY"))
-
-setMethod("show", "from_Server",
-          function(object) {
-              hdr <- gettextf("Converted %s object of class %s",
-                              object@language, object@Class)
-              module <- object@module
-              if(length(module)==1 && nzchar(module))
-                  hdr <- paste0(hdr, ", module ", module)
-              cat(hdr, "\n")
-              show(object@data)
-          })
-
-setClass("from_Server_Data",
-         slots = c(language = "character", Class = "character", module = "character"),
-                    contains = "vector")
-
-setMethod("show", "from_Server_Data",
-          function(object) {
-              hdr <- gettextf("R %s converted from %s object of class %s",
-                              nameQuote(class(object@.Data)), object@language, nameQuote(object@Class))
-              module <- object@module
-              if(length(module)==1 && nzchar(module))
-                  hdr <- paste0(hdr, ", module ", module)
-              cat(hdr, "\n")
-              data <- object@.Data
-              names(data) <- names(object) # design infeliicty: should be an easier way
-              show(data)
-          })
-
-
-
 
 #' A class that facilitates returning R vectors via a list in JSON
 #'
@@ -878,23 +840,6 @@ setMethod("asRObject", "ProxyObject", # typically, an element of a list
           function(object, evaluator) {
               actual <- evaluator$Get(object)
               asRObject(actual, evaluator)
-          }
-          )
-
-#' @describeIn asRObject An object converted from a server class is promoted to be
-#' from the vector class if its "data" slot is a vector.
-setMethod("asRObject", "from_Server",
-          function(object, evaluator) {
-              if(is(object@data, "vector")) {
-                  ## "design infelicity": must set "Class" slot after new() because
-                  ## Class= overrides the 1st arg. to new()
-                  value <- new("from_Server_Data", object@data)
-                  for(sl in c("language", "Class", "module"))
-                      slot(value, sl) <- slot(object, sl)
-                  value
-              }
-              else
-                  object
           }
           )
 
@@ -1187,7 +1132,15 @@ setMethod("objectAsJSON", "AssignedProxy",
               objectAsJSON(object, prototype, level)
           })
 
-
+#' Generate the Explicit Dictionary form for an R Object
+#'
+#' The XR interface strategy uses an explicit named list (i.e., dictionary) to describe an R object
+#' from a particular class.  This function creates the suitable form for such a dictionary, based on
+#' the formal class or the contents of an object.  Used by some interface packages (e.g., XRJulia) but
+#' likely only of information value otherwise, to tell you how to code an object in the server language.
+#' @return a named list with the required entries, e.g., \code{".RClass"}.
+#' @param object the object to use to infer the representation
+#' @param exclude slots or the like that should \emph{not} be in the dictionary form.
 objectDictionary <- function(object, exclude = character()) {
     slotList <- function() {
         value <- lapply(vnames, function(what) slot(object, what))
@@ -1269,7 +1222,10 @@ asJSONS4 <- function(object, prototype, exclude = character(), level = 1) {
   }
 
 jsonApply <- function(Rclass, value, prototype, level = 1, dict = TRUE) {
-    coded <- sapply(value, objectAsJSON, prototype = prototype, level = level)
+    if(length(value))
+        coded <- sapply(value, objectAsJSON, prototype = prototype, level = level)
+    else # sapply would return an empty list
+        coded <- character()
     if(!is.character(coded) || length(coded) != length(value)) #sanity check
         stop(gettextf(
             "Internal error: Something went wrong in applying objectAsJSON to an object of class %s:",
@@ -1311,16 +1267,6 @@ fillNames <- function(object, noNamesOK = FALSE) {
     names(object) <- onames
     object
 }
-
-
-setGeneric("asProxyName",
-           function(object)
-               stop(gettextf("Class \"%s\" objects do not define a proxy object name", class(object))))
-
-setMethod("asProxyName", "character",
-          function(object)
-              as(object, "character"))
-## a method is defined also in ProxyClass.R
 
 
 
@@ -1381,8 +1327,20 @@ typeToJSON <- function(object, prototype, unbox = TRUE, digits = .Digits) {
         JSONScalar(value)
 }
 
-## The conversion mechanism for returned objects.
-## Should be called by the implementation of ServerEval for individual interface classes.
+#' Convert the String Returned by a Server Language Interface to an R Object.
+#'
+#' This is the conversion mechanism for results returned from a server language interface.
+#' By default, JSON is used to decode the string.  Otherwise the result of the basic
+#' decoding should be provided as argument \code{object}.
+#' Should be called by the implementation of ServerEval for individual interface classes.
+#' @return the R object implied by the server result.
+#' @param string the string to be passed to JSON.
+#' @param key the key if a proxy was allowed, otherwise the empty string.
+#' @param get the logical controling whether a proxy or a converted value was wanted.
+#' @param evaluator the evaluator object that issued the server language expression.
+#' @param object If JSON is not used, the call from the server language method should provide the
+#' elementary conversion of the result (without using \code{asRObject()} and the string argument
+#' should be omitted.  If JSON is used, \code{object} should be computed by default from JSON.
 valueFromServer <- function(string, key, get, evaluator,
     object = jsonlite::fromJSON(string, simplifyVector = FALSE, flatten = FALSE)
                           ) {
@@ -1418,7 +1376,7 @@ valueFromServer <- function(string, key, get, evaluator,
         object
 }
 
-setGeneric("doCondition", function(object) {
+doCondition <- function(object) {
     evaluator <- object@evaluator
     msg <-  object@message
     value <- object@value
@@ -1435,10 +1393,14 @@ setGeneric("doCondition", function(object) {
         base::signalCondition(cond)
     }
     value
-})
+}
 
-## utility to surround names of classes, etc with double quotes (not the single quotes of
-## shQuote or the fancy quotes of dQuote)
+#' Plain Double Quote for Names
+#'
+#' Utility to surround names of classes, etc with double quotes (not the single quotes of
+#' shQuote or the fancy quotes of dQuote)
+#' @return the string with quotes.  But empty strings stay empty.
+#' @param what the input string.  Should be a name or something without quotes at least.
 nameQuote <- function(what) {
     if(length(what))
         paste0('"', what, '"')

@@ -12,21 +12,28 @@
 \alias{objectAsJSON,list-method}
 \title{Construct a String in JSON Notation to Represent an R Object}
 \usage{
-objectAsJSON(object, prototype, level = 1)
+objectAsJSON(object, prototype = prototypeObject(), level = 1)
 
-\S4method{objectAsJSON}{array}(object, prototype, level = 1)
+\S4method{objectAsJSON}{array}(object, prototype = prototypeObject(),
+  level = 1)
 
-\S4method{objectAsJSON}{environment}(object, prototype, level = 1)
+\S4method{objectAsJSON}{environment}(object, prototype = prototypeObject(),
+  level = 1)
 
-\S4method{objectAsJSON}{list}(object, prototype, level = 1)
+\S4method{objectAsJSON}{list}(object, prototype = prototypeObject(),
+  level = 1)
 
-\S4method{objectAsJSON}{envRefClass}(object, prototype, level = 1)
+\S4method{objectAsJSON}{envRefClass}(object, prototype = prototypeObject(),
+  level = 1)
 
-\S4method{objectAsJSON}{Interface}(object, prototype, level = 1)
+\S4method{objectAsJSON}{Interface}(object, prototype = prototypeObject(),
+  level = 1)
 
-\S4method{objectAsJSON}{AssignedProxy}(object, prototype, level = 1)
+\S4method{objectAsJSON}{AssignedProxy}(object, prototype = prototypeObject(),
+  level = 1)
 
-\S4method{objectAsJSON}{ProxyClassObject}(object, prototype, level = 1)
+\S4method{objectAsJSON}{ProxyClassObject}(object,
+  prototype = prototypeObject(), level = 1)
 }
 \arguments{
 \item{object}{The object to be converted.}
@@ -53,7 +60,7 @@ class or attribute information.
 }
 \section{Methods (by class)}{
 \itemize{
-\item \code{array}: correct for various inconsistencies in matrix and array objects
+\item \code{array}: treat matrix and array objects as legitimate S3 objects
 
 \item \code{environment}: An environment is encoded with its class, in contrast to a named list
 which may be a simple dictionary.
