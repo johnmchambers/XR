@@ -1025,7 +1025,7 @@ setGeneric("objectAsJSON",
                   is.recursive(object)) # relying on a method existing for "list"
                   asJSONS4(object, prototype, level = level)
               else
-                  typeToJSON(object, prototype, unbox = TRUE)
+                  typeToJSON(object, prototype)
            })
 
 ## We sidestep JSON for "numeric" because it leaves off trailing decimals points => integer
@@ -1275,9 +1275,14 @@ JSONScalar <- setClass("JSONScalar", contains = "character")
 
 .Digits <- ceiling(.Machine$double.digits*log10(.Machine$double.base))
 
-
-## Convert a simple object (should have no attributes or formal class) to JSON
-typeToJSON <- function(object, prototype, unbox = TRUE, digits = .Digits) {
+#' Convert a Simple Object to JSON String
+#'
+#' Convert a simple object (should have no attributes or formal class) to JSON string.
+#' Called from some specific interface packages, usually to put quotes and escapes into a string.
+#' @param object the object to convert; only its type will be used to select format
+#' @param prototype the prototype object, supplied from the evaluator calling this function
+typeToJSON <- function(object, prototype) {
+    unbox = TRUE; digits = .Digits # these were arguments  but never used other than the defaults
     switch(typeof(object),
            ## the standard vector types
            ## NAs for numeric become NaN; other types are made explicit as vector_R objects

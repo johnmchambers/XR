@@ -402,9 +402,13 @@ resolveProxyFields <- function(.Object, xfields, fields) {
 
 #' A Class for Proxy Functions
 #'
+#' Functions in R that call functions in a server language.  The arguments in a call are converted to
+#' equivalent server language objects, via \code{\link{asServerObject}()}.  These usually include proxy
+#' objects in R for results previously computed through the same interface evaluator.
+#'
 #' @slot name the name of the server language function
-#' @slot the name of the module, if that needs to be imported
-#' @slot the class for the evaluator, identifying which server lanaguage is involved.
+#' @slot module the name of the module, if that needs to be imported
+#' @slot evaluatorClass the class for the evaluator, identifying which server lanaguage is involved.
 ProxyFunction <- setClass("ProxyFunction",
                           slots = c(name = "character", module = "character", evaluatorClass = "character"),
                           contains = "function")

@@ -28,7 +28,7 @@ automatically from a class of objects for that evaluator, allowing methods to be
 specialized to the various interface evalutor classes.}
 }
 \description{
-Returns a string that can be inserted into a server language expression
+Returns a string that can be inserted into a server language expression.
 When parsed and evaluated by the server evaluator, the result
 will be the appropriate object or data.
 }

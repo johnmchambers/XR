@@ -12,7 +12,9 @@
   .get = NA)
 }
 \description{
-A Class for Proxy Functions
+Functions in R that call functions in a server language.  The arguments in a call are converted to
+equivalent server language objects, via \code{\link{asServerObject}()}.  These usually include proxy
+objects in R for results previously computed through the same interface evaluator.
 }
 \section{Methods (by generic)}{
 \itemize{
@@ -23,8 +25,8 @@ A Class for Proxy Functions
 \describe{
 \item{\code{name}}{the name of the server language function}
 
-\item{\code{the}}{name of the module, if that needs to be imported}
+\item{\code{module}}{the name of the module, if that needs to be imported}
 
-\item{\code{the}}{class for the evaluator, identifying which server lanaguage is involved.}
+\item{\code{evaluatorClass}}{the class for the evaluator, identifying which server lanaguage is involved.}
 }}
 
