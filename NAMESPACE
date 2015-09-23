@@ -15,9 +15,8 @@ export(getInterface)
 
 export(setProxyClass, loadProxyClasses, dumpProxyClasses, dumpProxyFunctions)
 
-exportClass(ProxyClassObject, vector_R)
-exportClass(ProxyFunction)
-exportClass(ServerClassDef)
-exportClass(Interface)
+export(Interface, ServerClassDef)
+exportClass(Interface, ServerClassDef)
+exportClass(ProxyClassObject, vector_R, ProxyFunction)
 
 export(typeToJSON)
