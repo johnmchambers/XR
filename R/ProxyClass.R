@@ -411,7 +411,7 @@ resolveProxyFields <- function(.Object, xfields, fields) {
 #' @slot evaluatorClass the class for the evaluator, identifying which server lanaguage is involved.
 ProxyFunction <- setClass("ProxyFunction",
                           slots = c(name = "character", module = "character", evaluatorClass = "character"),
-                          contains = "function")
+                          contains = c("function", "ProxyObject"))
 #' @describeIn ProxyFunction
 #'
 setMethod("initialize", "ProxyFunction",

@@ -1,4 +1,4 @@
-setClassUnion("ProxyObject")
+setClassUnion("ProxyObject", "name")
 
 #' Reference class for all interface evaluators
 #'
