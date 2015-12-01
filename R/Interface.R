@@ -235,8 +235,55 @@ evaluatorNumber <- function(ev) {
     n
 }
 
+## a table of the search paths for languages that subclass "Interface"
+languagePaths <- new.env()
+
+pathEl <- setClass("pathEl", slots = c(package = "character", pos = "numeric"),
+                   contains = "character")
+
+setMethod("initialize","pathEl",
+          function(.Object, ..., package = NULL, pos = NA) {
+              if(is.null(package))
+                  package <- ""
+              if(is.na(pos))
+                  pos <- NA_real_
+              callNextMethod()
+          })
+
+
+
+serverAddToPath <- function(Class, dir, package = utils::packageName(topenv(parent.frame())),
+                          pos = NA) {
+    if(!is.character(dir))
+        stop(gettextf(
+            "New path element must be a directory as a string, got %s",
+            dQuote(class(dir))))
+    if(is(Class, "classRepresentation"))
+        className <- Class@className
+    else if(is(Class, "character")) {
+        className <- Class
+        Class <- getClass(className)
+    }
+    else
+        stop(gettextf(
+            "Invalid object to define interface (got class %s)",
+            class(Class)))
+    if(!extends(Class, "Interface"))
+        stop(gettextf(
+            "Class for path must extend \"Interface\", %s does not",
+            dQuote(className)))
+    path <- languagePaths[[className]]
+    el <- list(pathEl(dir, package = package, pos = pos))
+    if(is.null(path))
+        path <- el
+    else if(is.na(match(dir, path)))
+        path <- c(path, el)
+    languagePaths[[className]] <- path
+    invisible(path)
+}
+
 ## a table of the evaluators for all languages that subclass "Interface"
-## (see the $initialize() method for that class)
+## (see getInterface())
 languageEvaluators <- new.env()
 
 #' Get or start an evaluator for an interface
@@ -313,6 +360,11 @@ getInterface <- function(Class, ..., .makeNew = NA, .select = NULL)  {
         current <- c(list(value), current)
     languageEvaluators[[className]] <- current
     languageEvaluators[[".Current"]] <- value
+    paths <- languagePaths[[className]]
+    if(!is.na(paths)) {
+        for(path in paths)
+            value$AddToPath(path, path@package, path@pos)
+    }
     value
 }
 
