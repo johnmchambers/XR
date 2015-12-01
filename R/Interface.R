@@ -689,6 +689,11 @@ What happens has no effect on the client side; the intent is to potentially reco
 this method should do it.  In connected interfaces, this is likely but not in embedded.
 The method for the "Interface" class does nothing.'
     },
+    ServerFunctionDef = function(name, module = "", ...) {
+        'The XR method defines the proxy function with no special metadata information.
+Server langugae metadata may be used by a method that overrides this one, and calls it.'
+        ProxyFunction(name, module, ...)
+    },
     ServerClassDef = function(Class, module, ...) {
         'Individual interface packages will define this to return a named list or other object such that value$fields and value$methods are the server fields and methods, character vectors
 of names or named objects whose elements give further information.  This default version
