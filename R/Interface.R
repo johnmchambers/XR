@@ -252,12 +252,22 @@ setMethod("initialize","pathEl",
 
 
 
-serverAddToPath <- function(Class, dir, package = utils::packageName(topenv(parent.frame())),
-                          pos = NA) {
-    if(!is.character(dir))
+serverAddToPath <- function(Class, directory, package = utils::packageName(topenv(parent.frame())),
+                            pos = NA, onLoad = NA) {
+    ## note:  directory is not allowed to be missing.  The server language specializations will
+    ## supply a default of the language name, as per $AddToPath().
+    el <- list(pathEl(directory, package = package, pos = pos))
+    if(is.na(onLoad))# if from a source package, set load action
+        onLoad <- nzchar(el[[1]]@package) # use slot, iniitalize() method will have set it.
+    if(onLoad) {
+        action <- sys.call()
+        action$onLoad <- FALSE
+        evalOnLoad(action)
+    }
+    if(!is.character(directory))
         stop(gettextf(
             "New path element must be a directory as a string, got %s",
-            dQuote(class(dir))))
+            dQuote(class(directory))))
     if(is(Class, "classRepresentation"))
         className <- Class@className
     else if(is(Class, "character")) {
@@ -273,14 +283,50 @@ serverAddToPath <- function(Class, dir, package = utils::packageName(topenv(pare
             "Class for path must extend \"Interface\", %s does not",
             dQuote(className)))
     path <- languagePaths[[className]]
-    el <- list(pathEl(dir, package = package, pos = pos))
     if(is.null(path))
         path <- el
-    else if(is.na(match(dir, path)))
+    else if(is.na(match(directory, path)))
         path <- c(path, el)
     languagePaths[[className]] <- path
     invisible(path)
 }
+
+## a table of the modules to import on initialization of evaluators
+## (see getInterface())
+languageModules <- new.env()
+
+serverImport <- function(Class, ..., package = utils::packageName(topenv(parent.frame())), onLoad = NA) {
+    if(is.na(onLoad))
+        onLoad <- nzchar(package)
+    if(onLoad) {
+        action <- sys.call()
+        action$onLoad <- FALSE
+        evalOnLoad(action)
+    }
+    if(is(Class, "classRepresentation"))
+        className <- Class@className
+    else if(is(Class, "character")) {
+        className <- Class
+        Class <- getClass(className)
+    }
+    else
+        stop(gettextf(
+            "Invalid object to define interface (got class %s)",
+            class(Class)))
+    if(!extends(Class, "Interface"))
+        stop(gettextf(
+            "Class for path must extend \"Interface\", %s does not",
+            dQuote(className)))
+    modules <- languageModules[[className]]
+    el <- substitute(value$Module(...))
+    if(is.null(modules))
+        modules <- el
+    else
+        modules <- c(modules, el)
+    languageModules[[className]] <- modules
+    invisible(modules)
+}
+
 
 ## a table of the evaluators for all languages that subclass "Interface"
 ## (see getInterface())
@@ -364,6 +410,11 @@ getInterface <- function(Class, ..., .makeNew = NA, .select = NULL)  {
     if(!is.na(paths)) {
         for(path in paths)
             value$AddToPath(path, path@package, path@pos)
+    }
+    modules <- languageModules[[className]]
+    if(!is.na(modules)) {
+        for(expr in modules)
+            eval(expr)
     }
     value
 }

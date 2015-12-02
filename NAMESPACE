@@ -12,7 +12,7 @@ export(valueFromServer)
 export(nameQuote)
 export(objectDictionary)
 export(getInterface)
-export(serverAddToPath)
+export(serverAddToPath, serverImport)
 
 export(setProxyClass, loadProxyClasses, dumpProxyClasses, dumpProxyFunctions)
 
