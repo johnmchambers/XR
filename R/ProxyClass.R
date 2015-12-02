@@ -416,7 +416,7 @@ ProxyFunction <- setClass("ProxyFunction",
 #'
 setMethod("initialize", "ProxyFunction",
           function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA) {
-              ## an escape for the case that dumpProxyFunctions()
+              ## an escape for the case that dumpProxyFunction()
               ## was used to avoid the need for server evaluation:
               if(methods::hasArg(".Data")) {
                   ## set the slots directly.  Should really
@@ -475,37 +475,22 @@ setMethod("asServerObject", "ProxyClassObject",
 #' To avoid getting server language class and function information at load time,
 #' which won't work with narrow-minded
 #' package repositories such as CRAN, these functions generate R code to define the proxy classes
-#' and functions explicitly.
+#' and functions explicitly.  The calls to the functions will usually be the same as the calls to \code{\link{setProxyClass}}
+#' or \code{\link{ProxyFunction}}, plus a first argument being the file or open connection to which the output will be sent.
 #'
-#' The package creator should create the desired proxy functions and/or classes from an interactive session.
-#' Then call \code{dumpProxyFunctions()} and/or \code{dumpProxyClasses()} to write
+#' The package creator should call \code{dumpProxyFunction()} and/or \code{dumpProxyClass()} to write
 #' files of R source.  The files go into the application package's source, defining the same
 #' proxy functions or classes explicitly.
-#' @param Classes the names of the server language classes for which proxy classes should have been created.
 #' @param file where to write the generated R code.  By default makes up a name from the function or  class names.
-#' @param where where to find the function or class definitions; by deafault and usually the global environment.
-dumpProxyClasses <- function(Classes, file = .dumpFileName(Classes), where = .GlobalEnv) {
-    classes <- getClasses(where)
-    ## Find corresponding proxy classes
-    ambig <- none <- rep(FALSE, length(Classes))
-    for(i in seq_along(Classes)[!grepl("_",Classes, fixed = TRUE)]) {
-        proxy <- grep(paste0(Classes[[i]], "_"), classes, fixed = TRUE)
-        if(length(proxy) == 1)
-            Classes[[i]] <- classes[[proxy]]
-        else if(length(proxy) > 1)
-            ambig[[i]] <- TRUE
-        else
-            none[[i]] <- TRUE
-    }
-    if(any(ambig | none)) {
-        msg <- (if(any(none)) gettextf("Proxy classes not found for %s",
-                                       quoteList(Classes[none]))
-                else character())
-        if(any(ambig))
-            msg <- c(msg, gettextf("More than one possible proxy for %s",
-                                   quoteList(Classes[ambig])))
-        stop(paste(msg, collapse = "; "))
-    }
+#' @param ... the arguments that would be given to setProxyClass() or setProxyFunction()
+#' @param where environment for the function or class definitions; the same default as for setClass, etc..
+#' @param objName the name to use when assigning the class generator or the proxy function object; defaults respectively to
+#' the R class name and the server language function name.
+#' @param doSet the function to create the object; defaults to XR:setProxyClass
+#' and XR::ProxyFunction.  Individual server language interfaces will supply doSet as their customized versions of
+#' those two functions.
+dumpProxyClass <- function(file = .dumpFileName(Class), ..., where = topenv(parent.frame),
+                           objName = Class, doSet = XR::setProxyClass) {
     if(is(file, "connection") && isOpen(file))
         con <- file
     else {
@@ -515,9 +500,9 @@ dumpProxyClasses <- function(Classes, file = .dumpFileName(Classes), where = .Gl
             con <- base::file(file, "w")
         on.exit(close(con))
     }
-    for(i in seq_along(Classes))
-        .dumpOneClass(Classes[[i]], con)
-    file
+    gen <- doSet(..., where = where)
+    Class <- gen@className
+    .dumpOneClass(Class, con, objName)
 }
 
 .dumpFileName <- function(classes,thing = "Class") {
@@ -528,7 +513,7 @@ dumpProxyClasses <- function(Classes, file = .dumpFileName(Classes), where = .Gl
     gettextf("Proxy_%s_%s.R", what, thing)
 }
 
-.dumpOneClass <- function(ProxyClass, con) {
+.dumpOneClass <- function(ProxyClass, con, name = ProxyClass) {
     classDef <- getClass(ProxyClass)
     if(!extends(ProxyClass, "ProxyClassObject"))
         stop(gettextf("Class %s is not a proxy class; should extend \"ProxyClassObject\"",
@@ -536,7 +521,7 @@ dumpProxyClasses <- function(Classes, file = .dumpFileName(Classes), where = .Gl
     rmethods <- classDef@refMethods
     info <- rmethods[["ServerClassInfo"]]
     pc <- info()
-    text <- gettextf("%s <- XR::setProxyClass(%s, module = %s,", ProxyClass, nameQuote(pc$ServerClass), nameQuote(pc$ServerModule))
+    text <- gettextf("%s <- XR::setProxyClass(%s, module = %s,", name, nameQuote(pc$ServerClass), nameQuote(pc$ServerModule))
     text <- c(text, gettextf("    evaluatorClass = %s, language = %s, proxyObjectClass = %s,",
                              nameQuote(pc$evaluatorClass), nameQuote(pc$language), nameQuote(pc$proxyObjectClass)))
     contains <- pc$proxyContains
@@ -589,32 +574,21 @@ dumpProxyClasses <- function(Classes, file = .dumpFileName(Classes), where = .Gl
     text
 }
 
-#' @describeIn dumpProxyClasses
-#' @param functions the names of the server language functions for which proxies have been created.
-dumpProxyFunctions <-
-    function(functions,
-             file = .dumpFileName(functions, "Function"),
-             where = topenv(parent.frame())) {
-    if(is.character(file)) {
-        con <- base::file(file, "w")
+#' @describeIn dumpProxyClass
+#'
+dumpProxyFunction <-
+    function(file = .dumpFileName(fname, "Function"), ..., where = topenv(parent.frame),
+             objName = obj@name, doSet = XR::ProxyFunction) {
+    if(is(file, "connection") && isOpen(file))
+        con <- file
+    else {
+        if(is(file, "connection"))
+            con <- open(file, "w")
+        else
+            con <- base::file(file, "w")
         on.exit(close(con))
     }
-    else
-        con <- file
-    for(what in functions) {
-        def <- get(what, envir = where)
-        if(!is(def, "ProxyFunction"))
-            stop(gettextf("Expected a ProxyFunction for object %s, got %s",
-                          nameQuote(what), nameQuote(class(def))))
-        snames <- methods::slotNames(class(def))
-        call <- lapply(snames, function(x) methods::slot(def, x))
-        names(call) <- snames
-        call <- as.call(c(quote(new), class(def), call))
-        expr <- substitute(WHAT <- CALL,
-                           list(WHAT = as.name(what),
-                                CALL = call))
-        dput(expr, con)
-        cat("\n", file = con)
-    }
-    invisible(file)
+    obj <- doSet(..., where = where)
+    cat(gettextf("%s <- ", objName), file = con)
+    dput(obj, con)
 }
