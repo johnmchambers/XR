@@ -406,13 +406,15 @@ getInterface <- function(Class, ..., .makeNew = NA, .select = NULL)  {
         current <- c(list(value), current)
     languageEvaluators[[className]] <- current
     languageEvaluators[[".Current"]] <- value
+    ## apply the path and import directives previously specified for this class
+    ## by serverAddToPath() and serverImport()
     paths <- languagePaths[[className]]
-    if(!is.na(paths)) {
+    if(!is.null(paths)) {
         for(path in paths)
             value$AddToPath(path, path@package, path@pos)
     }
     modules <- languageModules[[className]]
-    if(!is.na(modules)) {
+    if(!is.null(modules)) {
         for(expr in modules)
             eval(expr)
     }
