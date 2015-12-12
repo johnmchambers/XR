@@ -1304,6 +1304,12 @@ objectDictionary <- function(object, exclude = character()) {
         package <- "" # this provides a test for an S3 class
         slotList <- listList
     }
+    else if(length(attributes(object))) { # a structure w/o class attr.
+        Rclass <- "structure"
+        ext <- c(Rclass, class(object))
+        package <- ""
+        slotList <- attrList
+    }
     else { # plain
         package <- ""
         ext <- class(object)
