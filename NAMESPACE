@@ -9,7 +9,7 @@ export(ProxyClassObject, vector_R)
 
 export(objectAsJSON)
 export(valueFromServer)
-export(nameQuote)
+export(nameQuote, fillNames)
 export(objectDictionary)
 export(getInterface)
 export(serverAddToPath, serverImport)
