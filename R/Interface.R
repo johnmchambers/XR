@@ -15,6 +15,10 @@ setClassUnion("ProxyObject", "name")
 #' @field prototypeObject The object representing any proxy class for this inteface.  Usually from
 #' a class defined by the specific interface package, to distinguish its proxy classes. This
 #' field is passed as the \code{prototype} argument in calls to \code{\link{asServerObject}}.
+#' @field simplify Should lists whose elements are each basic scalars be unsted?
+#' Default FALSE.  May also be a function that takes a possibly simplifiabel
+#' list as argument and returns the vector/list result.
+#' Use this to apply a customized test; e.g., all scalars must have same type.
 Interface <-
   setRefClass("Interface",
               fields = list(evaluatorId = "character",
@@ -22,7 +26,7 @@ Interface <-
               prototypeObject = "ProxyObject",
               propertyFormat = "character", proxyClassTable = "environment",
               modules = "environment",
-              serverPath = "character"))
+              serverPath = "character", simplify = "ANY"))
 
 #' Classes of objects representing errors or other conditions in a server language
 #'
@@ -470,6 +474,8 @@ Interface$methods(
                           evaluatorId <<- paste(languageName, "Evaluator", format(Sys.time()))
                       if(!length(propertyFormat))
                           propertyFormat <<- "%s.%s"
+                      if(is(simplify, "uninitializedField"))
+                          simplify <<- FALSE
                   },
                   finalize = function(...) {
                       'method called when the object is garbage collected.  A call to the $Quit() method
@@ -998,6 +1004,11 @@ setMethod("asRObject", "list",
                   object
           })
 
+#"@describeIn asRObject Assume this has been done via .RClass; avoid inheriting the list method
+setMethod("asRObject", "data.frame",
+          function(object, evaluator)
+              object
+          )
 
 ## a table of generator functions that need to be called by makeNewObject in place
 ## of the initialize() method
@@ -1013,7 +1024,7 @@ setMethod("asRObject", "list",
     scan(txt, complex())
 }
 
-.asRMethods <- list(matrix = base::array, data.frame = base::data.frame,
+.asRMethods <- list(matrix = base::array,
                     AssignedProxy = AssignedProxy, raw = .scanRaw, complex = .scanComplex
                     )
 
@@ -1067,7 +1078,11 @@ makeNewObject <- function(object, evaluator, expandProxy = TRUE) {
     ## The following prohibits extensions of serialized types except via methods
     if(is.null(generator) && type %in% .serializedTypes)
         generator <- .unserial
-    classDef <- getClassDef(class, package = package)
+    ##S4 objects always have a nonempty package
+    if(nzchar(package))
+        classDef <- getClassDef(class, package = package)
+    else
+        classDef <- NULL
     doStruct <- is.null(classDef) || isVirtualClass(classDef) || !is.null(generator)
     args <- .cleanArgs(args, doStruct)
     if(is.null(generator))  { # generate a new object from the class
@@ -1090,25 +1105,42 @@ makeNewObject <- function(object, evaluator, expandProxy = TRUE) {
     value
 }
 
-.primitiveStructures <- c("matrix", "array")
+.primitiveStructures <- c("matrix", "array", "structure")
+.specialAttrs <- c("names", "row.names")
 
 makeStructureObject <- function(args, class, package, classAttr = class) {
     ## create a structure from the data part (element ".Data" or unnamed)
     ## with the other elements as attributes
     attrs <- names(args)
     dataPart <- attrs == ".Data" | !nzchar(attrs)
-    if(any(dataPart))
+    if(any(dataPart)) {
         ## should warn if > 1?
         data <- args[dataPart][[1]]
+        attrs <- attrs[!dataPart]
+        args <- args[!dataPart]
+    }
     else
         data <- logical() # ? simplest vector; should warn?
-    ## use individual attr(), because the dataPart may have attributes already
-    for(i in seq_along(attrs))
-        attr(data, attrs[[i]]) <- args[[i]]
-    ## set class attribute, if not one of the primitives
-    if(! class %in% .primitiveStructures)
+    ## flag the attributes that are constrained by the base code
+    specials <- attrs %in% .specialAttrs
+    for(i in seq_along(attrs)) {
+        el <- args[[i]]
+        if(specials[[i]] && is.list(el))
+            el <- unlist(el)
+        ## use individual attr(), because the dataPart may have attributes already
+        attr(data, attrs[[i]]) <- el
+    }
+    if(nzchar(package)) { # S4 class
+        attr(classAttr, "package") <- package
         base::class(data) <- classAttr
-    data
+        asS4(data)
+    }
+    else {
+        ## set class attribute, if not one of the primitives
+        if(! class %in% .primitiveStructures)
+            base::class(data) <- classAttr
+        data
+    }
 }
 
 #' Construct a String in JSON Notation to Represent an R Object
@@ -1305,8 +1337,7 @@ objectDictionary <- function(object, exclude = character()) {
         slotList <- listList
     }
     else if(length(attributes(object))) { # a structure w/o class attr.
-        Rclass <- "structure"
-        ext <- c(Rclass, class(object))
+        Rclass <- ext <- "structure"
         package <- ""
         slotList <- attrList
     }
@@ -1462,9 +1493,19 @@ typeToJSON <- function(object, prototype) {
 #' @param object If JSON is not used, the call from the server language method should provide the
 #' elementary conversion of the result (without using \code{asRObject()} and the string argument
 #' should be omitted.  If JSON is used, \code{object} should be computed by default from JSON.
-valueFromServer <- function(string, key, get, evaluator,
-    object = jsonlite::fromJSON(string, simplifyVector = FALSE, flatten = FALSE)
-                          ) {
+valueFromServer <-
+    function(string, key, get, evaluator,
+             object)
+    {
+        if(missing(object)) {
+            simplify <- evaluator$simplify
+            postSimplify <- is(simplify, "function")
+            object <- jsonlite::fromJSON(string,
+             simplifyVector = !postSimplify && simplify, flatten = FALSE,
+             simplifyDataFrame=FALSE, simplifyMatrix = FALSE)
+            if(postSimplify)
+                object <- simplify(object)
+        }
     ## if key is empty any non-null value is presumably an exception
     if(!nzchar(key)) {
         if(is.null(object))
