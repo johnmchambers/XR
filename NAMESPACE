@@ -21,3 +21,5 @@ exportClass(Interface, ServerClassDef)
 exportClass(ProxyClassObject, vector_R, ProxyFunction)
 
 export(typeToJSON)
+export(noScalar)
+
