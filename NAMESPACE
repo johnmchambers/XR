@@ -22,5 +22,4 @@ exportClass(ProxyClassObject, vector_R, ProxyFunction)
 
 export(typeToJSON)
 export(noScalar)
-exportClass("list_Python", "dict_Python")
 
