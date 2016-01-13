@@ -10,6 +10,6 @@ Description: The structure for a family of interfaces from R to other
 	     classes and methods for communication.  Will be used through a specific language
 	     interface package.  Described in the book (in progress) "Extending R".
 License: GPL (>= 2)
-Imports: methods
+Imports: methods, jsonlite
 NeedsCompilation: no
 Packaged: 2015-09-10 13:16:26 UTC; jmc
