@@ -23,14 +23,14 @@ ProxyClassObject <- setRefClass("ProxyClassObject",
                                 )
 
 ## a convenience method, to give a more informative error message
-#' @describeIn AssignedProxy
+#' @describeIn AssignedProxy Signals error; must be defined for server langauge
 setMethod("$", "AssignedProxy",
           function(x, name) {
               stop(gettextf("No proxy class defined for server class %s",
                             x@serverClass))
           })
 
-#' @describeIn AssignedProxy
+#' @describeIn AssignedProxy Signals error; must be defined for server langauge
 setMethod("$<-", "AssignedProxy",
           function(x, name, value) {
               stop(gettextf("No proxy class defined for server class %s",
@@ -412,8 +412,8 @@ resolveProxyFields <- function(.Object, xfields, fields) {
 ProxyFunction <- setClass("ProxyFunction",
                           slots = c(name = "character", module = "character", evaluatorClass = "character"),
                           contains = c("function", "ProxyObject"))
-#' @describeIn ProxyFunction
-#'
+#' @describeIn ProxyFunction The Interface class method has a general $Call() to get the server langauge definition
+#' unless a \code{\link{dumpProxyFunction}} has created this call with all slots specified.
 setMethod("initialize", "ProxyFunction",
           function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA) {
               ## an escape for the case that dumpProxyFunction()
@@ -574,7 +574,7 @@ dumpProxyClass <- function(file = .dumpFileName(Class), ..., where = topenv(pare
     text
 }
 
-#' @describeIn dumpProxyClass
+#' @describeIn dumpProxyClass Dumps the constructed proxy function to the specified file or connection
 #'
 dumpProxyFunction <-
     function(file = .dumpFileName(fname, "Function"), ..., where = topenv(parent.frame),

@@ -204,7 +204,7 @@ AssignedProxy <- setClass("AssignedProxy",
                           slots = c(serverClass = "character", module = "character",
                           size = "integer", evaluator = "Interface"),
                           contains = c("character"))
-#' @describeIn AssignedProxy
+#' @describeIn AssignedProxy Prints the language, server class and optional module and size
 setMethod("show", "AssignedProxy",
           function(object) {
               ev <- object@evaluator
