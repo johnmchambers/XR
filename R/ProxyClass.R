@@ -80,6 +80,9 @@ ProxyClassObject$methods(
 #' By default, the current evaluator class.
 #' @param language the server language, taken from the evaluator if one is found.
 #' @param readOnly character vector of any field names that should be marked read-only.
+#' @param removePrevious should an existing definition of the R class be removed, to avoid
+#' further computations using that?  This usually arises when \code{\link{dumpProxyClass}} is called
+#' after the server language information changes.  Default \code{TRUE}.
 #' @param ... extra arguments to pass on to \code{setRefClass()}.
 setProxyClass <- function(Class, module = "",
                           fields = character(), methods = NULL,
@@ -90,6 +93,7 @@ setProxyClass <- function(Class, module = "",
                           proxyObjectClass = "ProxyClassObject",
                           language = if(is.null(evaluator)) "" else evaluator$languageName,
                           readOnly = NULL,
+                          removePrevious = TRUE,
                           ...) {
     ## in the case everything is specified (usually after a dumpProxyClasses())
     ## construct the reference class with no server side computation
@@ -123,6 +127,8 @@ setProxyClass <- function(Class, module = "",
             if(missing(proxyObjectClass)) # may be language-specific, for asServerObject() methods
                 proxyObjectClass <- class(evaluator$prototypeObject)
         }
+        if(removePrevious && isClass(Class_R))
+            removeClass(Class_R)
         generator <- setRefClass(Class_R,
                                  contains = c(contains, proxyObjectClass),
                                  fields = fields,
@@ -489,7 +495,7 @@ setMethod("asServerObject", "ProxyClassObject",
 #' @param doSet the function to create the object; defaults to XR:setProxyClass
 #' and XR::ProxyFunction.  Individual server language interfaces will supply doSet as their customized versions of
 #' those two functions.
-dumpProxyClass <- function(file = .dumpFileName(Class), ..., where = topenv(parent.frame),
+dumpProxyClass <- function(file = .dumpFileName(Class), Class, ..., where = topenv(parent.frame),
                            objName = Class, doSet = XR::setProxyClass) {
     if(is(file, "connection") && isOpen(file))
         con <- file
@@ -500,7 +506,7 @@ dumpProxyClass <- function(file = .dumpFileName(Class), ..., where = topenv(pare
             con <- base::file(file, "w")
         on.exit(close(con))
     }
-    gen <- doSet(..., where = where)
+    gen <- doSet(Class, ..., where = where)
     Class <- gen@className
     .dumpOneClass(Class, con, objName)
 }
@@ -577,8 +583,8 @@ dumpProxyClass <- function(file = .dumpFileName(Class), ..., where = topenv(pare
 #' @describeIn dumpProxyClass Dumps the constructed proxy function to the specified file or connection
 #'
 dumpProxyFunction <-
-    function(file = .dumpFileName(fname, "Function"), ..., where = topenv(parent.frame),
-             objName = obj@name, doSet = XR::ProxyFunction) {
+    function(file = .dumpFileName(fname, "Function"), fname, ..., where = topenv(parent.frame),
+             objName = obj@name, doSet = ProxyFunction) {
     if(is(file, "connection") && isOpen(file))
         con <- file
     else {
@@ -588,7 +594,7 @@ dumpProxyFunction <-
             con <- base::file(file, "w")
         on.exit(close(con))
     }
-    obj <- doSet(..., where = where)
+    obj <- doSet(fname, ..., where = where)
     cat(gettextf("%s <- ", objName), file = con)
     dput(obj, con)
 }
