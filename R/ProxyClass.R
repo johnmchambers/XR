@@ -80,9 +80,9 @@ ProxyClassObject$methods(
 #' By default, the current evaluator class.
 #' @param language the server language, taken from the evaluator if one is found.
 #' @param readOnly character vector of any field names that should be marked read-only.
-#' @param removePrevious should an existing definition of the R class be removed, to avoid
-#' further computations using that?  This usually arises when \code{\link{dumpProxyClass}} is called
-#' after the server language information changes.  Default \code{TRUE}.
+#' @param save If the proxy class is being defined in an application package, supply this as
+#' an environment for a load action or use it to write to a source file (see Ch. 12 of Extending R)
+#'   Default \code{FALSE}, if the proxy class is being used in this session only.
 #' @param ... extra arguments to pass on to \code{setRefClass()}.
 setProxyClass <- function(Class, module = "",
                           fields = character(), methods = NULL,
@@ -93,8 +93,9 @@ setProxyClass <- function(Class, module = "",
                           proxyObjectClass = "ProxyClassObject",
                           language = if(is.null(evaluator)) "" else evaluator$languageName,
                           readOnly = NULL,
-                          removePrevious = TRUE,
-                          ...) {
+                          ...,
+                          save = FALSE,
+                          objName = Class) {
     ## in the case everything is specified (usually after a dumpProxyClasses())
     ## construct the reference class with no server side computation
     if(!(is.null(fields) || is.null(methods) || missing(language)))
@@ -127,7 +128,8 @@ setProxyClass <- function(Class, module = "",
             if(missing(proxyObjectClass)) # may be language-specific, for asServerObject() methods
                 proxyObjectClass <- class(evaluator$prototypeObject)
         }
-        if(removePrevious && isClass(Class_R))
+        if(!identical(save, FALSE) && isClass(Class_R))
+            ## likely a redefinition, so remove the previous version to avoid errors
             removeClass(Class_R)
         generator <- setRefClass(Class_R,
                                  contains = c(contains, proxyObjectClass),
@@ -174,6 +176,11 @@ setProxyClass <- function(Class, module = "",
         if(is(evaluator, "Interface"))
             base::assign(Class, Class_R, envir = evaluator$proxyClassTable)
     }
+    if(identical(save, FALSE)) {}
+    else if(is(save, "environment"))
+        assign(objName, generator, envir = save)
+    else
+        dumpProxyClass(generator, save, objName)
     generator
 }
 
@@ -484,19 +491,16 @@ setMethod("asServerObject", "ProxyClassObject",
 #' and functions explicitly.  The calls to the functions will usually be the same as the calls to \code{\link{setProxyClass}}
 #' or \code{\link{ProxyFunction}}, plus a first argument being the file or open connection to which the output will be sent.
 #'
-#' The package creator should call \code{dumpProxyFunction()} and/or \code{dumpProxyClass()} to write
-#' files of R source.  The files go into the application package's source, defining the same
+#' The package creator should call supply save=file to set{Language}Function or set{Language}Class()
+#' functions.  The files go into the application package's source, defining the same
 #' proxy functions or classes explicitly.
+#' @param gen the generator object for the class.
 #' @param file where to write the generated R code.  By default makes up a name from the function or  class names.
-#' @param ... the arguments that would be given to setProxyClass() or setProxyFunction()
-#' @param where environment for the function or class definitions; the same default as for setClass, etc..
 #' @param objName the name to use when assigning the class generator or the proxy function object; defaults respectively to
 #' the R class name and the server language function name.
-#' @param doSet the function to create the object; defaults to XR:setProxyClass
-#' and XR::ProxyFunction.  Individual server language interfaces will supply doSet as their customized versions of
-#' those two functions.
-dumpProxyClass <- function(file = .dumpFileName(Class), Class, ..., where = topenv(parent.frame),
-                           objName = Class, doSet = XR::setProxyClass) {
+dumpProxyClass <- function(gen, file, Class, objName = Class) {
+    if(identical(file, TRUE))
+        file <- .dumpFileName(Class)
     if(is(file, "connection") && isOpen(file))
         con <- file
     else {
@@ -506,7 +510,6 @@ dumpProxyClass <- function(file = .dumpFileName(Class), Class, ..., where = tope
             con <- base::file(file, "w")
         on.exit(close(con))
     }
-    gen <- doSet(Class, ..., where = where)
     Class <- gen@className
     .dumpOneClass(Class, con, objName)
 }
