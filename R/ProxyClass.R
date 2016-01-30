@@ -583,11 +583,12 @@ dumpProxyClass <- function(gen, file, Class, objName = Class) {
     text
 }
 
-#' @describeIn dumpProxyClass Dumps the constructed proxy function to the specified file or connection
+#' @describeIn dumpProxyClass Dumps the proxy function object to the specified file or connection
 #'
 dumpProxyFunction <-
-    function(file = .dumpFileName(fname, "Function"), fname, ..., where = topenv(parent.frame),
-             objName = obj@name, doSet = ProxyFunction) {
+function(file, object, objName = obj@name) {
+    if(identical(file, TRUE))
+        file  <- .dumpFileName(obj@name, "Function")
     if(is(file, "connection") && isOpen(file))
         con <- file
     else {
@@ -597,7 +598,6 @@ dumpProxyFunction <-
             con <- base::file(file, "w")
         on.exit(close(con))
     }
-    obj <- doSet(fname, ..., where = where)
     cat(gettextf("%s <- ", objName), file = con)
     dput(obj, con)
 }

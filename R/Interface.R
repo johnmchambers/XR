@@ -838,6 +838,14 @@ generally be shared among languages, must unserialize the entire file.'
                                  length(value)))
         }
         value
+    },
+    SaveProxyFunction = function(save, object, objName = obj@name) {
+        if(identical(save, FALSE))
+            NULL
+        else if(is(save, "environment"))
+            assign(objName, object, envir = save)
+        else
+            dumpProxyFunction(save, object, objName)
     }
 )
 
