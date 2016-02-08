@@ -14,7 +14,7 @@ export(objectDictionary)
 export(getInterface)
 export(serverAddToPath, serverImport)
 
-export(setProxyClass, loadProxyClasses, dumpProxyClass, dumpProxyFunction)
+export(setProxyClass, dumpProxyClass, dumpProxyFunction)
 
 export(Interface, ServerClassDef)
 exportClass(Interface, ServerClassDef)

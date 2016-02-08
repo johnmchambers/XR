@@ -91,7 +91,6 @@ setClassUnion("Scalar", .scalars)
 #' @aliases Scalar-class numericScalar-class integerScalar-class logicalScalar-class
 #' @aliases characterScalar-class complexScalar-class
 #' @aliases show,Scalar-method  show,characterScalar-method
-
 Scalar <- function(object) {
     what <- match(typeof(object), .vectorTypes)
     if(is.na(what))
@@ -204,7 +203,6 @@ AssignedProxy <- setClass("AssignedProxy",
                           slots = c(serverClass = "character", module = "character",
                           size = "integer", evaluator = "Interface"),
                           contains = c("character"))
-#' @describeIn AssignedProxy Prints the language, server class and optional module and size
 setMethod("show", "AssignedProxy",
           function(object) {
               ev <- object@evaluator
@@ -227,18 +225,6 @@ setIs("AssignedProxy", "ProxyObject")
 ## process)
 .evaluatorTable <- new.env()
 
-## returns or creates a sequential number for the given evaluator,
-#' @describeIn getInterface Return the sequential number for this evalutor; used in \code{ProxyName()} method.
-evaluatorNumber <- function(ev) {
-    id <- ev$evaluatorId
-    n <- .evaluatorTable[[id]]
-    if(is.null(n)) {
-        n <- length(objects(.evaluatorTable))+1
-        assign(id, n, envir = .evaluatorTable)
-    }
-    n
-}
-
 ## a table of the search paths for languages that subclass "Interface"
 languagePaths <- new.env()
 
@@ -256,6 +242,22 @@ setMethod("initialize","pathEl",
 
 
 
+#' Add to Tables of Search Paths and Import Commands
+#'
+#' Utilities to add to the tables of search paths and import commands for all evalutors of the
+#' specified class.  Called only from analogous functions in packages for specific languages.
+#'
+#' The server-specific information is added to the tables stored by the XR package.  All future
+#' evaluators for the specified interface class will have these directories in their search
+#' path and will import the module information specified.  If a current evaluator for this
+#' class exists, it augments its path or issues the import command, but \emph{previous} evalutors
+#' for this class are not modified.
+#'
+#'  @param Class the class of the server-specific evalutor.
+#'  @param director the directory to add to the search path table.
+#'  @param package the name of the server-specific interface package.
+#'  @param pos where in the list of directories to insert this one.  Defaults to the end.
+#'  @param onLoad is the action being taken at load time.  (May be irrelevant)
 serverAddToPath <- function(Class, directory, package = utils::packageName(topenv(parent.frame())),
                             pos = NA, onLoad = NA) {
     ## note:  directory is not allowed to be missing.  The server language specializations will
@@ -299,6 +301,9 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
 ## (see getInterface())
 languageModules <- new.env()
 
+#' @rdname serverAddToPath
+#'
+#' @param ... arguments to pass to the evaluator's \code{$ServerImport()} method
 serverImport <- function(Class, ..., package = utils::packageName(topenv(parent.frame())), onLoad = NA) {
     if(is.na(onLoad))
         onLoad <- nzchar(package)
@@ -338,17 +343,26 @@ languageEvaluators <- new.env()
 
 #' Get or start an evaluator for an interface
 #'
+#' Utility functions to manage a table of evaluators, indexed by the evaluator class, typically
+#' one class per server language. All are typically hidden by functions or methods for the particular
+#' class. \code{rmInterface} and \code{evaluatorNumber} are used by methods and exported so that
+#' subclasses of interface evaluators will have access to them.
+#'
 #' @return \code{getInterface()} returns an  interface evaluator for this class, starting one if none exists.
 #' @param Class the name of the interface class for this evaluator; by default, the class of the
 #' current evaluator. Can also be the class definition object.
-#' @param makeNew can be used to force or prevent starting a new evaluator, if passed as
+#' @param ... arguments, if any, are passed to the generator for the evaluator
+#' @param .makeNew can be used to force or prevent starting a new evaluator, if passed as
 #' a logical value.  Can also be passed as a function that tests the suitability of a
 #' current evaluator, returning TRUE if this one won't do, and a new one should be
 #' generated instead (consistent with the ... arguments, presumably).
 #'
 #' The default is NA, meaning that an existing evaluator is OK, but one should be generated
 #' if none exists.  In contrast, FALSE means to return NULL if no matching evaluator exists.
-#' @param ... arguments, if any, are passed to the generator for the evaluator
+#' @param .select Can be supplied as a function of one argument, which will be called for
+#' each evaluator of this class and which should return \code{TRUE}/\code{FALSE} according to
+#' whether the evaluator should be accepted.  Allows applications to select, for example, a
+#' particular evaluator corresponding to a known connection.
 #' @details
 #'Specific language interface packages usually supply a convenience function equivalent
 #'to calling \code{getInterface()} for their class; e.g., \code{RPython()} in \code{'XRPython'}
@@ -442,6 +456,19 @@ rmInterface <- function(evaluator) {
         }
     }
     return(FALSE)
+}
+
+## returns or creates a sequential number for the given evaluator,
+#' @describeIn getInterface Return the sequential number for this evalutor; used in \code{ProxyName()} method.
+#' @param evaluator any evaluator object.
+evaluatorNumber <- function(evaluator) {
+    id <- evaluator$evaluatorId
+    n <- .evaluatorTable[[id]]
+    if(is.null(n)) {
+        n <- length(objects(.evaluatorTable))+1
+        assign(id, n, envir = .evaluatorTable)
+    }
+    n
 }
 
 .onUnload <- function(libPath) {
@@ -840,15 +867,15 @@ generally be shared among languages, must unserialize the entire file.'
         value
     },
     SaveProxyFunction = function(save, object, objName = obj@name) {
-        if(identical(save, FALSE))
-            NULL
-        else if(is(save, "environment"))
+        'The object is an expanded function definition, provided by the initialize method for this class.
+`save` should be either an environment in which to assign it or a place to dump the R source, either an
+open connection or a file name.'
+        if(is(save, "environment"))
             assign(objName, object, envir = save)
         else
             dumpProxyFunction(save, object, objName)
     }
 )
-
 
 prototypeObject <- function(evaluator = getInterface())
     evaluator$prototypeObject
@@ -1373,7 +1400,7 @@ objectDictionary <- function(object, exclude = character()) {
 asJSONS4 <- function(object, prototype, exclude = character(), level = 1) {
     value <- objectDictionary(object, exclude)
     ## now apply objectAsJSON to elements
-    jsonApply(Rclass, value, prototype, level+1)
+    jsonApply(attr(object, "class"), value, prototype, level+1)
   }
 
 jsonApply <- function(Rclass, value, prototype, level = 1, dict = TRUE) {
@@ -1395,7 +1422,7 @@ jsonApply <- function(Rclass, value, prototype, level = 1, dict = TRUE) {
 ## create an explicit .RClass representation for some type of data
 ## The object should not come from a subclass of the type--in that case
 ## asJSONS4 should have been called.
-asJSONData <- function(Class, type, data,  prototype) {
+asJSONData <- function(Class, type, data,  prototype, level=1) {
   classDef <- getClassDef(Class)
   if(is.null(classDef)) # no class for this type: does this ever happen?
     { package <- "base"; extends <- Class}
@@ -1404,9 +1431,14 @@ asJSONData <- function(Class, type, data,  prototype) {
   fields <- list(.RClass = Class, .type = type, .package = package, .extends = extends,
        .Data = data)
   ## the JSON dictionary
-  jsonApply(Class, fields, prototpye, level + 1)
+  jsonApply(Class, fields, prototype, level + 1)
 }
-## a utility to fill in blank names in list elements to make it valid for a dictionary
+
+#' Utilities for Server-Language Specific Use
+#'
+#'  A utility to fill in blank names in list elements to make it valid for a dictionary.
+#' @param object a list object, possibly with empty or duplicate names.
+#' @param noNamesOK what to do with a list having no names---leave it alone or fill them all in?
 fillNames <- function(object, noNamesOK = FALSE) {
     onames <- allNames(object)
     empty <- !nzchar(onames)
@@ -1462,6 +1494,7 @@ typeToJSON <- function(object, prototype) {
                return(asJSONData(class(object), typeof(object), deparse(object), prototype))
                },
        {# and finally, serialize it if we don't know anything else to do
+           txtC <- character() # just so CMD check doesn't screw up
            txt <- textConnection("txtC", "w")
            on.exit(close(txt))
            serialize(object, txt)

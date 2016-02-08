@@ -23,14 +23,12 @@ ProxyClassObject <- setRefClass("ProxyClassObject",
                                 )
 
 ## a convenience method, to give a more informative error message
-#' @describeIn AssignedProxy Signals error; must be defined for server langauge
 setMethod("$", "AssignedProxy",
           function(x, name) {
               stop(gettextf("No proxy class defined for server class %s",
                             x@serverClass))
           })
 
-#' @describeIn AssignedProxy Signals error; must be defined for server langauge
 setMethod("$<-", "AssignedProxy",
           function(x, name, value) {
               stop(gettextf("No proxy class defined for server class %s",
@@ -318,45 +316,6 @@ inferXFields <- function(xFields = character(), readOnly = NULL,
     }
 }
 
-#' Set a Load Action for Proxy Classes
-#'
-#' Set up a load action to define one or more proxy classes for a package
-#' The call to loadProxyClasses() usually comes in the source for an application package
-#' that uses an interface to one or more server langauges.
-#' The alternative, usually preferred, is to use \code{dumpProxyClass()} to generate an explicit
-#' definition in the source for the package.
-#' @param classes names of one or more classes in the server language
-#' @param modules modules (aka libraries, packages) in which to find the classes
-#' @param evaluator the evaluator to use, by default the current evaluator.
-#' @param ... arguments to pass on to the setProxyClass() call that will be generated at load tome.
-loadProxyClasses <- function(classes, module ="", evaluator = XR::getInterface(), ...) {
-    args <- list(...)
-    if(length(module) != 1)
-        stop("There should be one module specified or \"\" for no import needed.  Got length ",length(module))
-    language <- class(evaluator)
-    ## build the body of the function to be called at load time
-    body <- quote({})
-    body[[2]] <- substitute(ev <- XR::getInterface(LANG),
-                            list(LANG = language))
-    if(nzchar(module))
-        body[[3]] <- substitute(ev$Import(MODULE, CLASSES),
-                                list(MODULE = module, CLASSES = classes))
-    for(i in seq_along(classes)) {
-        call <- substitute(setProxyClass(CLASS, module = MOD, where = ns, evaluator = ev),
-                           list(CLASS = classes[[i]], MOD = module))
-        if(length(args))
-            call <- as.call(c(as.list(call), args))
-        body[[length(body)+1]] <- call
-    }
-    f <- function(ns){}
-    body(f) <- body
-    where <- topenv(parent.frame())
-    if(exists(".packageName", envir = where, inherits = FALSE))
-        setLoadAction(f, paste0("Proxy.",classes[[1]], if(length(classes) > 1) "..." else ""), where = where)
-    else
-        evalq(f(where))
-    invisible(f)
-}
 
 #' The Definition of a Server Language Class
 #'
@@ -415,18 +374,21 @@ resolveProxyFields <- function(.Object, xfields, fields) {
 
 #' A Class for Proxy Functions
 #'
-#' Functions in R that call functions in a server language.  The arguments in a call are converted to
+#' A class for functions in R that call functions in a server language.  The arguments in a call are converted to
 #' equivalent server language objects, via \code{\link{asServerObject}()}.  These usually include proxy
 #' objects in R for results previously computed through the same interface evaluator.
 #'
+#' This class is always subclassed for a particular server language.  Proxy functions for that
+#' language will use a corresponding evaluator to find metadata about the server function.
+#'
+#' @slot .Data the function
 #' @slot name the name of the server language function
 #' @slot module the name of the module, if that needs to be imported
 #' @slot evaluatorClass the class for the evaluator, identifying which server lanaguage is involved.
 ProxyFunction <- setClass("ProxyFunction",
                           slots = c(name = "character", module = "character", evaluatorClass = "character"),
                           contains = c("function", "ProxyObject"))
-#' @describeIn ProxyFunction The Interface class method has a general $Call() to get the server langauge definition
-#' unless a \code{\link{dumpProxyFunction}} has created this call with all slots specified.
+
 setMethod("initialize", "ProxyFunction",
           function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA) {
               ## an escape for the case that dumpProxyFunction()
@@ -486,16 +448,23 @@ setMethod("asServerObject", "ProxyClassObject",
 #' Dump Explicit Definition of Proxy Classes and Functions
 #'
 #' To avoid getting server language class and function information at load time,
-#' which won't work with narrow-minded
+#' which may not work with narrow-minded
 #' package repositories such as CRAN, these functions generate R code to define the proxy classes
-#' and functions explicitly.  The calls to the functions will usually be the same as the calls to \code{\link{setProxyClass}}
-#' or \code{\link{ProxyFunction}}, plus a first argument being the file or open connection to which the output will be sent.
+#' and functions explicitly.
+#' Normally not called directly.
 #'
-#' The package creator should call supply save=file to set{Language}Function or set{Language}Class()
-#' functions.  The files go into the application package's source, defining the same
+#' The functions will usually be called from  \code{\link{setProxyClass}}
+#' or an initializing method for a subclass of \code{\link{ProxyFunction}},
+#' with an argument for the file or open connection to which the output will be sent.
+#'
+#' If called with the working directory set to the package source directory,
+#' the files go into the application package's R source, defining the same
 #' proxy functions or classes explicitly.
 #' @param gen the generator object for the class.
-#' @param file where to write the generated R code.  By default makes up a name from the function or  class names.
+#' @param file where to write the generated R code.  If simply \code{TRUE}, a name is constructed from the function or  class names.
+#' May also be a connection.  If the file or connection is not open, it is opened and then
+#' closed on exit.
+#' @param Class the server language class name.
 #' @param objName the name to use when assigning the class generator or the proxy function object; defaults respectively to
 #' the R class name and the server language function name.
 dumpProxyClass <- function(gen, file, Class, objName = Class) {
@@ -519,7 +488,11 @@ dumpProxyClass <- function(gen, file, Class, objName = Class) {
         what <- classes
     else
         what <- paste0(classes[[1]], "---")
-    gettextf("Proxy_%s_%s.R", what, thing)
+    file <- gettextf("Proxy_%s_%s.R", what, thing)
+    ## check for wd being a package source directory, if so, use the R/ subdirectory
+    if(file.exists("DESCRIPTION") && identical(file.info("R")$isdir, TRUE))
+        file <- paste0("R/", file)
+    file
 }
 
 .dumpOneClass <- function(ProxyClass, con, name = ProxyClass) {
@@ -583,12 +556,14 @@ dumpProxyClass <- function(gen, file, Class, objName = Class) {
     text
 }
 
-#' @describeIn dumpProxyClass Dumps the proxy function object to the specified file or connection
+#' @rdname dumpProxyClass
 #'
+#' @param object the proxy object, constructed by the initialization method for one of the proxy
+#' function classes, such as \code{"PythonFunction"}.
 dumpProxyFunction <-
-function(file, object, objName = obj@name) {
+function(file, object, objName = object@name) {
     if(identical(file, TRUE))
-        file  <- .dumpFileName(obj@name, "Function")
+        file  <- .dumpFileName(object@name, "Function")
     if(is(file, "connection") && isOpen(file))
         con <- file
     else {
@@ -599,5 +574,5 @@ function(file, object, objName = obj@name) {
         on.exit(close(con))
     }
     cat(gettextf("%s <- ", objName), file = con)
-    dput(obj, con)
+    dput(object, con)
 }
