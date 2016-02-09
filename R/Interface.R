@@ -44,29 +44,6 @@ setClass("InterfaceError",
 setClass("InterfaceWarning",
          contains = "InterfaceCondition")
 
-
-## the scalar classes
-integerScalar <- setClass("integerScalar", contains = c("integer"),
-                          prototype = NA_integer_,
-                          validity = function(object) length(object) == 1)
-
-numericScalar <- setClass("numericScalar", contains = c("numeric"),
-                          prototype = NA_real_,
-                          validity = function(object) length(object) == 1)
-
-characterScalar <- setClass("characterScalar", contains = c("character"),
-                          prototype = NA_character_,
-                          validity = function(object) length(object) == 1)
-
-logicalScalar <- setClass("logicalScalar", contains = c("logical"),
-                          prototype = NA,
-                          validity = function(object) length(object) == 1)
-
-complexScalar <- setClass("complexScalar", contains = c("complex"),
-                          prototype = NA_complex_,
-                          validity = function(object) length(object) == 1)
-
-.scalars <- c("integerScalar", "numericScalar", "characterScalar", "logicalScalar", "complexScalar")
 .vectors <- c("integer", "numeric", "character", "logical", "complex")
 .vectorTypes <- c("integer", "double", "character", "logical", "complex")
 
@@ -76,28 +53,6 @@ typeToClass <- function(type) {
         "list"
     else
         .vectors[[tt]]
-}
-
-setClassUnion("Scalar", .scalars)
-
-#' Scalar objects: declarations and classes
-#'
-#' The generator function \code{Scalar} and the corresponding class union indicate to the
-#' interface evaluator that the object should be a valid scalar.  These are not often needed
-#' explicitly, if the default rule converting length-1 vectors to scalars is applied and if
-#' the JSON scalar output is a legal constant in the server language.
-#' @param object A valid object for a scalar; that is, a vector of length 1.
-#' @return The same value but with a suitable scalar class `numericScalar` etc.
-#' @aliases Scalar-class numericScalar-class integerScalar-class logicalScalar-class
-#' @aliases characterScalar-class complexScalar-class
-#' @aliases show,Scalar-method  show,characterScalar-method
-Scalar <- function(object) {
-    what <- match(typeof(object), .vectorTypes)
-    if(is.na(what))
-        stop(gettextf("Type %s object is not a valid scalar", nameQuote(typeof(object))))
-    else if(length(object) != 1)
-        stop(gettextf("Scalar object must be of length 1; got %d", length(object)))
-    new(.scalars[[what]], object)
 }
 
 #' Force an object to be treated as a vector in the server language
@@ -113,72 +68,6 @@ noScalar <- function(object) {
         stop(gettextf("Object of class %s is not a vector", nameQuote(class(object))))
 }
 
-
-setMethod("show", "Scalar", function(object) cat(format(object), "\n"))
-
-setMethod("show", "characterScalar", function(object) cat(deparse(as.character(object)), "\n"))
-
-setMethod("[<-", "Scalar",
-    function (x, i, j, ..., value)
-    {
-        if(missing(i) && missing(j))
-            as(value, class(x))
-        else
-            stop("Indexed replacement invalid with scalar objects")
-    }
-)
-
-setMethod("[[<-", "Scalar",
-    function (x, i, j, ..., value)
-    {
-            stop("Replacing elements invalid with scalar objects")
-    }
-)
-
-
-for(i in seq_along(.scalars)) {
-    cl <- .scalars[[i]]
-    vcl <- .vectors[[i]]
-    setMethod("initialize", cl, eval(substitute(function(.Object, data ) {
-        if(!missing(data)) {
-            if(length(data) != 1)
-                stop(gettextf("Can't use a vector of length %s as a scalar",
-                          length(data)))
-            data <- as(data, VCL)
-            class(data) <- class(.Object)
-            .Object <- data
-        }
-        asS4(.Object)
-    }, list(VCL = vcl))))
-    setAs(vcl, cl, eval(substitute(function(from) {
-        if(length(from) != 1)
-            stop(gettextf("Can't coerce a vector of length %s to scalar",
-                          length(from)))
-        new(cl, as(from, VCL))
-    },list(VCL = vcl))), function(from, value) {
-        if(length(value) != 1)
-            stop(gettextf("Can't coerce a vector of length %s to scalar",
-                          length(value)))
-        from[ ] <- value
-        from
-    })
-    ## the setAs() code doesn't work well here, so we have set all the methods
-    ## rather than counting on inheritance
-    for(fromvcl in .vectors) {
-        setAs(fromvcl, cl, eval(substitute(function(from) {
-            if(length(from) != 1)
-                stop(gettextf("Can't coerce a vector of length %s to scalar",
-                              length(from)))
-            new(CL, as(from, VCL))
-        }, list(CL = cl, VCL = vcl))), eval(substitute(function(from, value) {
-            if(length(value) != 1)
-                stop(gettextf("Can't coerce a vector of length %s to scalar",
-                              length(value)))
-            from[ ] <- as(value, VCL)
-            from
-        }, list(VCL = fromvcl))))
-    }
-}
 
 ### ProxyObjects
 
@@ -254,7 +143,7 @@ setMethod("initialize","pathEl",
 #' for this class are not modified.
 #'
 #'  @param Class the class of the server-specific evalutor.
-#'  @param director the directory to add to the search path table.
+#'  @param directory the directory to add to the search path table.
 #'  @param package the name of the server-specific interface package.
 #'  @param pos where in the list of directories to insert this one.  Defaults to the end.
 #'  @param onLoad is the action being taken at load time.  (May be irrelevant)
@@ -368,6 +257,11 @@ languageEvaluators <- new.env()
 #'to calling \code{getInterface()} for their class; e.g., \code{RPython()} in \code{'XRPython'}
 #'
 #'If no \code{Class} is given, the current (i.e., last active) evaluator is returned
+#' @examples
+#' ## the current evaluator, or NULL if none exists
+#' getInterface()
+#' ## this will always be NULL, because no evaluator has this class
+#' getInterface("Interface", .makeNew = FALSE)
 getInterface <- function(Class, ..., .makeNew = NA, .select = NULL)  {
     if(nargs() == 0)
         return(languageEvaluators[[".Current"]])
@@ -460,13 +354,19 @@ rmInterface <- function(evaluator) {
 
 ## returns or creates a sequential number for the given evaluator,
 #' @describeIn getInterface Return the sequential number for this evalutor; used in \code{ProxyName()} method.
+#' If not there: if \code{add}, add the evaluator to the table; else return \code{NA}.
 #' @param evaluator any evaluator object.
-evaluatorNumber <- function(evaluator) {
+#' @param add if this evaluator is not in the table, add it.  Default \code{TRUE}.
+evaluatorNumber <- function(evaluator, add = TRUE) {
     id <- evaluator$evaluatorId
     n <- .evaluatorTable[[id]]
     if(is.null(n)) {
-        n <- length(objects(.evaluatorTable))+1
-        assign(id, n, envir = .evaluatorTable)
+        if(add) {
+            n <- length(objects(.evaluatorTable))+1
+            assign(id, n, envir = .evaluatorTable)
+        }
+        else
+            n <- NA_integer_
     }
     n
 }
@@ -511,6 +411,12 @@ also calls this method (recalling it later then does nothing).  In case some ser
 the evaluator is then removed from the table of interface evaluators.'
         ServerQuit(...)
         rmInterface(.self)
+    },
+    show = function() {
+        n <- evaluatorNumber(.self, FALSE)
+        n_txt <- if(is.na(n)) "<Not in the evaluator table>" else
+             gettextf("Evaluator number: %d", as.integer(n))
+        cat(gettextf("%s evaluator; Id: %s; %s\n", languageName, dQuote(evaluatorId), n_txt))
     },
     Quit = function(...) { finalize(...) },
     ServerArglist = function(...) {
@@ -924,17 +830,21 @@ setMethod("asServerObject", "AssignedProxy",
 #' A class that facilitates returning R vectors via a list in JSON
 #'
 #' Server language code will return a dictionary in which data= is a JSON-style list
-#' and type= is the R vector type desired.  See the asRObject() method described below.
+#' and type= is the R vector type desired.  See the asRObject() method documentation.
+#' Objects from this class can also be generated in R, usually supplying just \code{data}
+#' and generating the other slots from that object's properties.
 #' @slot data The actual vector data.
 #' @slot type The string for the \R type intended. In spite of the slot name, this really the class;
 #' for example, "numeric" rather than "double".
 #' @slot missing The index of NA's in this vector.  Needed because most server languages only
 #' treat `NaN` for doubles and have no mechanism for `NA` in other types.
+#' @examples
+#' x <- c(1:2,NA,4:5)
+#' vector_R(x)
 vector_R <- setClass("vector_R",
                      slots = c(data = "vector", type = "character",
-                     missing = "vector", serverClass = "character"))
+                     missing = "vector"))
 
-#' @describeIn vector_R Expects usually to get only the `data` argument.
 setMethod("initialize", "vector_R",
           function(.Object, data, type = typeToClass(typeof(.Object@data)), missing) {
               if(base::missing(data)) # the 0-argument case
@@ -1001,7 +911,7 @@ setMethod("asRObject", "ProxyObject", # typically, an element of a list
     eval(parse(text = txt))
 }
 
-#' @describeIn vector_R To distinguish typed R vectors from a general JSON list, encode the
+#' @describeIn asRObject To distinguish typed R vectors from a general JSON list, encode the
 #' desired data as an object from the "vector_R" class.
 #' Vector types whose elements cannot be represented in JSON (e..g, "complex") should
 #' be returned as a list of character strings in a format that R will parse as
@@ -1039,7 +949,7 @@ setMethod("asRObject", "list",
                   object
           })
 
-#"@describeIn asRObject Assume this has been done via .RClass; avoid inheriting the list method
+#' @describeIn asRObject Assume this has been done via .RClass; avoid inheriting the list method
 setMethod("asRObject", "data.frame",
           function(object, evaluator)
               object
@@ -1395,9 +1305,16 @@ objectDictionary <- function(object, exclude = character()) {
     value
 }
 
-## The general converter for an object with a formal class
-## or an object to be described via its S3 class, data and attributes
-asJSONS4 <- function(object, prototype, exclude = character(), level = 1) {
+#' Convert an Object to a Dictionary or Array in JSON Notation
+#'
+#' The general converter for an object with a formal class
+#' or an object to be described via its S3 class, data and attributes.
+#' Not usually called directly, but from \code{\link{objectAsJSON}} or method in an interface package.
+#' @param object The object to convert.
+#' @param prototype The prototype object (supplied from the evaluator).
+#' @param exclude Slots to exclude from the dictionary.
+#' @param level The level of expansion of objects within the original object.
+asJSONS4 <- function(object, prototype, exclude = character(), level = 0) {
     value <- objectDictionary(object, exclude)
     ## now apply objectAsJSON to elements
     jsonApply(attr(object, "class"), value, prototype, level+1)

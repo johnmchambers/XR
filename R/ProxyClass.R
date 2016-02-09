@@ -23,12 +23,24 @@ ProxyClassObject <- setRefClass("ProxyClassObject",
                                 )
 
 ## a convenience method, to give a more informative error message
+#' Miscellaneous methods
+#'
+#' Convenience methods are provided for operator \code{$} to give more informative error messages
+#' if \code{AssignedProxy} objects are assumed
+#' incorrectly to have a proxy class definition.
+#'
+#' @param x,name,value Arguments to the operator.
+#' @name MiscMethods
+NULL
+
+#' @rdname MiscMethods
 setMethod("$", "AssignedProxy",
           function(x, name) {
               stop(gettextf("No proxy class defined for server class %s",
                             x@serverClass))
           })
 
+#' @rdname MiscMethods
 setMethod("$<-", "AssignedProxy",
           function(x, name, value) {
               stop(gettextf("No proxy class defined for server class %s",
@@ -76,11 +88,15 @@ ProxyClassObject$methods(
 #' @param contains explicitly needed superclasses if any.
 #' @param evaluatorClass the evaluator class to identify the evaluator, e.g.  \code{"PythonInterface"} for Python.
 #' By default, the current evaluator class.
+#' @param proxyObjectClass The general class for proxy objects in this interface.  Typically
+#' obtained automatically from the \code{prototypObject} field of the evaluator.
 #' @param language the server language, taken from the evaluator if one is found.
 #' @param readOnly character vector of any field names that should be marked read-only.
 #' @param save If the proxy class is being defined in an application package, supply this as
 #' an environment for a load action or use it to write to a source file (see Ch. 12 of Extending R)
 #'   Default \code{FALSE}, if the proxy class is being used in this session only.
+#' @param objName When using the \code{save=} argument to write R code, use this name in the
+#' assignment expression for the generator object.  By default, the name of the class.
 #' @param ... extra arguments to pass on to \code{setRefClass()}.
 setProxyClass <- function(Class, module = "",
                           fields = character(), methods = NULL,

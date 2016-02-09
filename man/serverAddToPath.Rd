@@ -15,6 +15,8 @@ serverImport(Class, ..., package = utils::packageName(topenv(parent.frame())),
 \arguments{
 \item{Class}{the class of the server-specific evalutor.}
 
+\item{directory}{the directory to add to the search path table.}
+
 \item{package}{the name of the server-specific interface package.}
 
 \item{pos}{where in the list of directories to insert this one.  Defaults to the end.}
@@ -22,8 +24,6 @@ serverImport(Class, ..., package = utils::packageName(topenv(parent.frame())),
 \item{onLoad}{is the action being taken at load time.  (May be irrelevant)}
 
 \item{...}{arguments to pass to the evaluator's \code{$ServerImport()} method}
-
-\item{director}{the directory to add to the search path table.}
 }
 \description{
 Utilities to add to the tables of search paths and import commands for all evalutors of the

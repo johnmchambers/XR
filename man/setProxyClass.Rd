@@ -28,6 +28,9 @@ package in which the call to \code{setProxyClass()} occurs.}
 \item{evaluatorClass}{the evaluator class to identify the evaluator, e.g.  \code{"PythonInterface"} for Python.
 By default, the current evaluator class.}
 
+\item{proxyObjectClass}{The general class for proxy objects in this interface.  Typically
+obtained automatically from the \code{prototypObject} field of the evaluator.}
+
 \item{language}{the server language, taken from the evaluator if one is found.}
 
 \item{readOnly}{character vector of any field names that should be marked read-only.}
@@ -37,6 +40,9 @@ By default, the current evaluator class.}
 \item{save}{If the proxy class is being defined in an application package, supply this as
 an environment for a load action or use it to write to a source file (see Ch. 12 of Extending R)
   Default \code{FALSE}, if the proxy class is being used in this session only.}
+
+\item{objName}{When using the \code{save=} argument to write R code, use this name in the
+assignment expression for the generator object.  By default, the name of the class.}
 }
 \value{
 a generator object for the R class, along with the side effect of setting the class definition.

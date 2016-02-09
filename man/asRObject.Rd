@@ -4,14 +4,20 @@
 \name{asRObject}
 \alias{asRObject}
 \alias{asRObject,ProxyObject-method}
+\alias{asRObject,data.frame-method}
 \alias{asRObject,list-method}
+\alias{asRObject,vector_R-method}
 \title{Specialize the R Object Returned from an Interface Evaluator}
 \usage{
 asRObject(object, evaluator)
 
 \S4method{asRObject}{ProxyObject}(object, evaluator)
 
+\S4method{asRObject}{vector_R}(object, evaluator)
+
 \S4method{asRObject}{list}(object, evaluator)
+
+\S4method{asRObject}{data.frame}(object, evaluator)
 }
 \arguments{
 \item{object}{An object constructed from the explicit representation as a dictionary.
@@ -39,8 +45,16 @@ XR representation in terms of class and slots is not what's actually wanted.
 is expanded, by using the `Get()` method of the evaluator and calling `asRObject()` on the
 result.
 
+\item \code{vector_R}: To distinguish typed R vectors from a general JSON list, encode the
+desired data as an object from the "vector_R" class.
+Vector types whose elements cannot be represented in JSON (e..g, "complex") should
+be returned as a list of character strings in a format that R will parse as
+elements of the suitable vector object. (e.g, ".5+3i")
+
 \item \code{list}: Both lists and dictionaries will come here from the basic conversion.
 `names(object)` will either be NULL or all non-empty, from a dictionary.
+
+\item \code{data.frame}: Assume this has been done via .RClass; avoid inheriting the list method
 }}
 \section{Writing Application Methods}{
 

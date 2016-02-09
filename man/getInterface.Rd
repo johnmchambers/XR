@@ -10,7 +10,7 @@ getInterface(Class, ..., .makeNew = NA, .select = NULL)
 
 rmInterface(evaluator)
 
-evaluatorNumber(evaluator)
+evaluatorNumber(evaluator, add = TRUE)
 }
 \arguments{
 \item{Class}{the name of the interface class for this evaluator; by default, the class of the
@@ -32,6 +32,8 @@ whether the evaluator should be accepted.  Allows applications to select, for ex
 particular evaluator corresponding to a known connection.}
 
 \item{evaluator}{any evaluator object.}
+
+\item{add}{if this evaluator is not in the table, add it.  Default \code{TRUE}.}
 }
 \value{
 \code{getInterface()} returns an  interface evaluator for this class, starting one if none exists.
@@ -53,5 +55,12 @@ If no \code{Class} is given, the current (i.e., last active) evaluator is return
 \item \code{rmInterface}: Remove an the specified  evaluator from the table of available interfaces.
 
 \item \code{evaluatorNumber}: Return the sequential number for this evalutor; used in \code{ProxyName()} method.
+If not there: if \code{add}, add the evaluator to the table; else return \code{NA}.
 }}
+\examples{
+## the current evaluator, or NULL if none exists
+getInterface()
+## this will always be NULL, because no evaluator has this class
+getInterface("Interface", .makeNew = FALSE)
+}
 
