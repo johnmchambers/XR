@@ -1,14 +1,14 @@
 Package: XR
 Type: Package
 Title: A Structure for Interfaces from R
-Version: 0.5
-Date: 2015-01-24
+Version: 0.6
+Date: 2016-01-24
 Author: John M. Chambers
 Maintainer: John Chambers <jmc@r-project.org>
-Description: The structure for a family of interfaces from R to other languages,
+Description: Support for interfaces from R to other languages,
     built around a class for evaluators and a combination of functions, classes and
     methods for communication. Will be used through a specific language interface
-    package. Described in the book (in progress) "Extending R".
+    package. Described in the book "Extending R".
 License: GPL (>= 2)
 Imports:
     methods,

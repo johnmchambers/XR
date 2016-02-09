@@ -1,0 +1,21 @@
+#' A Structure for Interfaces from R
+#'
+#' The XR package defines classes and functions that will be extended and used by interfaces from R to
+#' other languages.
+#' The goals are: a uniform approach; simplicity in programming; users of application packages should be
+#' essentially unaware that particular functions and objects are in fact proxies for computations in
+#' other languages.
+#'
+#' The functions in this package will nearly always be used by other packages, providing an interface to a
+#' particular language (see packages XRPython and XRJulia for examples).  Users will rarely need to call
+#' functions in XR and application packages will rarely need to import it directly.
+#'
+#' For further details, see the reference [1] (Chapter 13 is included in the documentation for this package).
+#'
+#' @docType package
+#' @name XR
+#' @references
+#'  [1] Chambers, John M.
+#' \emph{Extending R.} Chapman & Hall, 2016
+NULL
+
