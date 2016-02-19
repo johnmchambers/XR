@@ -1536,3 +1536,15 @@ quoteList <- function(what, more) {
         paste(what, nameQuote(more), sep = " = ", collapse = ", ")
 }
 
+## utility to return proxy name
+proxyName <- function(x)
+    stop(gettextf("No proxy name contained in objects of class %s",
+                  dQuote(class(x))))
+
+setGeneric("proxyName")
+
+setMethod("proxyName", "AssignedProxy",
+          function(x)
+              as(x, "character"))
+## and a method for ProxyClassObject in ProxyClass.R
+

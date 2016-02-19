@@ -24,3 +24,6 @@ export(typeToJSON)
 export(noScalar)
 
 export(packageSetup)
+
+export(proxyName)
+

@@ -592,3 +592,8 @@ function(file, object, objName = object@name) {
     cat(gettextf("%s <- ", objName), file = con)
     dput(object, con)
 }
+
+## proxyName defined earlier (in Interface.R)
+setMethod("proxyName", "ProxyClassObject",
+          function(x)
+              callGeneric(x$.proxyObject))
