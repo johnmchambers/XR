@@ -1548,3 +1548,61 @@ setMethod("proxyName", "AssignedProxy",
               as(x, "character"))
 ## and a method for ProxyClassObject in ProxyClass.R
 
+setClassUnion("serverFields", c("environment", "list", "namedList", "NULL"))
+
+noServerData <- new.env() # a special value for the data slot of from_Server
+
+.badNames <- function(ns) {
+    if(is.null(ns))
+        "No names"
+    else {
+        blank <- !nzchar(ns)
+        if(any(blank))
+            gettextf("Empty names: %s", paste(which(blank), collapse = ", "))
+        else
+            gettextf("Duplicate names: %s", paste(dQuote(ns[duplicated(ns)]), collapse = ", "))
+    }
+}
+
+.checkFields <- function(fields) {
+    if(is.null(fields) || is.environment(fields))
+        return(fields)
+    ns <- names(fields)
+    if(is.character(ns) && all(nzchar(ns)) && !anyDuplicated(ns))
+        as(fields, "environment")
+    else
+        stop("Field names must be unique and non-empty: %s", .badNames(ns))
+}
+
+from_Server <- setClass("from_Server",
+                        slots = c(serverClass = "character", module = "character",
+                                  language = "character", fields = "serverFields", data = "ANY"),
+                        prototype = list(serverClass = "", module = "", language = "",
+                                         fields = NULL, data = noServerData))
+setMethod("initialize", "from_Server",
+          function(.Object, ..., referenceClass = TRUE) {
+              obj <- callNextMethod(.Object, ...)
+              fields <- obj@fields
+              if(referenceClass && !is.null(fields))
+                  obj@fields <- .checkFields(fields)
+              obj
+          })
+
+
+setMethod("$", "from_Server",
+          function(x, name) {
+              i <- match(name, names(x@data))
+              if(is.na(i))
+                  stop(gettextf("%s object of class %s has no %s field",
+                                x@language, dQuote(x@serverClass), dQuote(name)))
+              x@data[[i]]
+          })
+
+setMethod("show", "from_Server",
+          function(object) {
+              cat(gettextf("R conversion of %s object of class %s\n\nConverted fields:\n",
+                           object@language, dQuote(object@Class)))
+              methods::show(as.list(object@fields))
+          })
+
+
