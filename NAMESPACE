@@ -27,3 +27,4 @@ export(packageSetup)
 
 export(proxyName)
 
+export(fixHelpTopic)

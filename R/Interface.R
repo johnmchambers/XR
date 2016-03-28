@@ -388,7 +388,20 @@ evaluatorNumber <- function(evaluator, add = TRUE) {
         languageEvaluators[[Class]] <- list() # nobody cares, but anyway.
     }
 }
-
+#' Make a Help Topic an Explicit Character String
+#'
+#' A helper function to pass on a help topic (specifically for a reference-class method) to
+#' another help-style function; i.e., so the user could have supplied either a name or a
+#' general expression that evaluates to a character string.
+#'
+#' @param topic The \emph{expression} supplied by your user.  If this was a name, it will be
+#' taken literally, otherwise evaluated two levels up the call stack, which should return a character string.
+fixHelpTopic <- function(topic) {
+    if(is.name(topic))
+        as.character(topic)
+    else
+        eval(topic, parent.frame(2))
+}
 
 Interface$methods(
                   initialize = function(...) {
@@ -561,10 +574,10 @@ $Define() method of the evaluator'
             Call(FUN, ...), list(FUN = as.character(serverFun))))
     },
     Help = function(topic) {
-        getRefClass()$help(topic)
+        getRefClass()$help(fixHelpTopic(substitute(topic)))
     },
     help = function(topic) {
-        getRefClass()$help(topic)
+        getRefClass()$help(fixHelpTopic(substitute(topic)))
     },
     ProxyClassName = function(serverClass) {
         'If there is a proxy class defined corresponding to this serverClass, return the name
