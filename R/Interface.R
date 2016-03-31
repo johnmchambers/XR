@@ -1619,3 +1619,31 @@ setMethod("show", "from_Server",
           })
 
 
+setClass("Unconvertible",
+         slots = c( serverClass = "character", serverModule = "character",
+         language = "character", attributes = "list"))
+
+setMethod("initialize", "Unconvertible",
+          function(.Object, ...) {
+              value <- callNextMethod()
+              if(!length(value@serverModule))
+                  value@serverModule <- ""
+              if(!length(value@language))
+                  value@language <- "<Unspecified>"
+              if(!length(value@serverClass))
+                  value@serverClass <- "<Unspecified>"
+              value
+          })
+
+setMethod("show", "Unconvertible",
+          function(object) {
+              cat(gettextf("Unconvertible %s object of class %s",
+                  object@language, dQuote(object@serverClass)))
+              if(nzchar(object@serverModule))
+                  cat(gettextf(", module = %s", dQuote(object@serverModule)))
+              cat("\n")
+              if(length(object@attributes)) {
+                  cat("Attributes:\n")
+                  show(object@attributes)
+              }
+          })
