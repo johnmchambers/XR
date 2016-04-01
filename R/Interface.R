@@ -1619,6 +1619,13 @@ setMethod("show", "from_Server",
           })
 
 
+#' Unconverted Server Language Objects
+#'
+#' Objects from this class represent server language objects whose conversion was requested
+#' but which are judged (by the server side of the interface) to have no equivalent R form.
+#' Rather than generating an error, the interface returns an object of this class, which can
+#' have convertible attributes.  Fields of a convertible object may be unconvertible without
+#' preventing conversion of the rest of the parent object.
 setClass("Unconvertible",
          slots = c( serverClass = "character", serverModule = "character",
          language = "character", attributes = "list"))
