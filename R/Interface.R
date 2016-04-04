@@ -148,7 +148,7 @@ setMethod("initialize","pathEl",
 #'  @param pos where in the list of directories to insert this one.  Defaults to the end.
 #'  @param onLoad is the action being taken at load time.  (May be irrelevant)
 serverAddToPath <- function(Class, directory, package = utils::packageName(topenv(parent.frame())),
-                            pos = NA, onLoad = NA) {
+                            pos = NA, onLoad = NA, where = topenv(parent.frame())) {
     ## note:  directory is not allowed to be missing.  The server language specializations will
     ## supply a default of the language name, as per $AddToPath().
     el <- list(pathEl(directory, package = package, pos = pos))
@@ -157,7 +157,7 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
     if(onLoad) {
         action <- sys.call()
         action$onLoad <- FALSE
-        evalOnLoad(action)
+        evalOnLoad(action, where = where)
     }
     if(!is.character(directory))
         stop(gettextf(
@@ -188,19 +188,17 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
 
 ## a table of the modules to import on initialization of evaluators
 ## (see getInterface())
-languageModules <- new.env()
+languageImports <- new.env()
 
-#' @rdname serverAddToPath
+#' Register an Import Command for Current and Future Evaluators
 #'
-#' @param ... arguments to pass to the evaluator's \code{$ServerImport()} method
-serverImport <- function(Class, ..., package = utils::packageName(topenv(parent.frame())), onLoad = NA) {
-    if(is.na(onLoad))
-        onLoad <- nzchar(package)
-    if(onLoad) {
-        action <- sys.call()
-        action$onLoad <- FALSE
-        evalOnLoad(action)
-    }
+#' An import command with these arguments will be executed for each new evaluator of this
+#' interface class.   If there is a current evaluator, the command will be executed for it.
+#' The function is usually called from a corresponding language-specific version.
+#'
+#' @param Class the interface class or its name.
+#' @param ... arguments to pass to the evaluator's \code{$Import()} method
+serverImport <- function(Class, ...) {
     if(is(Class, "classRepresentation"))
         className <- Class@className
     else if(is(Class, "character")) {
@@ -215,14 +213,21 @@ serverImport <- function(Class, ..., package = utils::packageName(topenv(parent.
         stop(gettextf(
             "Class for path must extend \"Interface\", %s does not",
             dQuote(className)))
-    modules <- languageModules[[className]]
-    el <- substitute(value$Module(...))
+    modules <- languageImports[[className]] ### use [[ to get NULL if not there
+    expr <- as.call(list(as.name("Import"), ...))
     if(is.null(modules))
-        modules <- el
-    else
-        modules <- c(modules, el)
-    languageModules[[className]] <- modules
-    invisible(modules)
+        modules <- list(expr)
+    else {
+        for(el in modules)
+            if(identical(el, expr))  ### catches the EXACT same import request
+                return(invisible(FALSE))
+        modules <- c(modules, expr)
+    }
+    value <- getInterface(className, .makeNew = FALSE)
+    if(!is.null(value))
+        eval(expr, envir = value)
+    assign(className, modules, envir = languageImports)
+    invisible(TRUE)
 }
 
 
@@ -325,9 +330,9 @@ getInterface <- function(Class, ..., .makeNew = NA, .select = NULL)  {
         for(path in paths)
             value$AddToPath(path, path@package, path@pos)
     }
-    modules <- languageModules[[className]]
-    if(!is.null(modules)) {
-        for(expr in modules)
+    imports <- languageImports[[className]]
+    if(!is.null(imports)) {
+        for(expr in imports)
             eval(expr)
     }
     value
@@ -357,9 +362,9 @@ rmInterface <- function(evaluator) {
 #' If not there: if \code{add}, add the evaluator to the table; else return \code{NA}.
 #' @param evaluator any evaluator object.
 #' @param add if this evaluator is not in the table, add it.  Default \code{TRUE}.
-evaluatorNumber <- function(evaluator, add = TRUE) {
+evaluatorNumber <- function(evaluator, add = length(id) > 0) {
     id <- evaluator$evaluatorId
-    n <- .evaluatorTable[[id]]
+    n <-  if(length(id)) .evaluatorTable[[id]] else NULL
     if(is.null(n)) {
         if(add) {
             n <- length(objects(.evaluatorTable))+1
@@ -404,7 +409,9 @@ fixHelpTopic <- function(topic) {
 }
 
 Interface$methods(
-                  initialize = function(...) {
+                      initialize = function(...) {
+                      'initializes the evaluator in a language-independent sense.  Should not be called
+until there actually is an evaluator, so that path and import operations can take place'
                       initFields(...) # allow overides to precede
                       if(!length(languageName)) # but should be set by a subclass method first
                           languageName <<- "<UnspecifiedLanguage>"
@@ -416,6 +423,14 @@ Interface$methods(
                           propertyFormat <<- "%s.%s"
                       if(is(simplify, "uninitializedField"))
                           simplify <<- FALSE
+                      ## initialize the system path and imports
+                      className <- class(.self)
+                      path <- languagePaths[[className]]
+                      for(dir in path)
+                          AddToPath(dir)
+                      imports <- languageImports[[className]]
+                      for(expr in imports)
+                          eval(expr, envir = .self)
                   },
                   finalize = function(...) {
                       'method called when the object is garbage collected.  A call to the $Quit() method
