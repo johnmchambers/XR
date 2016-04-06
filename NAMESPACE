@@ -13,6 +13,7 @@ export(nameQuote, fillNames)
 export(objectDictionary)
 export(getInterface)
 export(serverAddToPath, serverImport)
+export(languagePaths, languageImports)
 
 export(setProxyClass, dumpProxyClass, dumpProxyFunction)
 

@@ -155,9 +155,10 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
     if(is.na(onLoad))# if from a source package, set load action
         onLoad <- nzchar(el[[1]]@package) # use slot, iniitalize() method will have set it.
     if(onLoad) {
-        action <- sys.call()
+        action <- as.call(list(quote(XR::serverAddToPath),Class, directory,package, pos))
         action$onLoad <- FALSE
         evalOnLoad(action, where = where)
+        return(TRUE)
     }
     if(!is.character(directory))
         stop(gettextf(
@@ -177,12 +178,13 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
         stop(gettextf(
             "Class for path must extend \"Interface\", %s does not",
             dQuote(className)))
-    path <- languagePaths[[className]]
+    env <- XR::languagePaths
+    path <- env[[className]]
     if(is.null(path))
         path <- el
     else if(is.na(match(directory, path)))
         path <- c(path, el)
-    languagePaths[[className]] <- path
+    env[[className]] <- path
     invisible(path)
 }
 
@@ -198,7 +200,14 @@ languageImports <- new.env()
 #'
 #' @param Class the interface class or its name.
 #' @param ... arguments to pass to the evaluator's \code{$Import()} method
-serverImport <- function(Class, ...) {
+serverImport <- function(Class, ..., onLoad = nzchar(packageName(where)), where = topenv(parent.frame())) {
+    ## if from a source package, set load action
+    if(onLoad) {
+        action <- as.call(list(quote(XR::serverImport),Class, ...))
+        action$onLoad <- FALSE
+        evalOnLoad(action, where = where)
+        return(TRUE)
+    }
     if(is(Class, "classRepresentation"))
         className <- Class@className
     else if(is(Class, "character")) {
@@ -213,8 +222,9 @@ serverImport <- function(Class, ...) {
         stop(gettextf(
             "Class for path must extend \"Interface\", %s does not",
             dQuote(className)))
-    modules <- languageImports[[className]] ### use [[ to get NULL if not there
-    expr <- as.call(list(as.name("Import"), ...))
+    env <- XR::languageImports
+    modules <- env[[className]] ### use [[ to get NULL if not there
+    expr <- as.call(list(quote(.self$Import), ...))
     if(is.null(modules))
         modules <- list(expr)
     else {
@@ -226,7 +236,7 @@ serverImport <- function(Class, ...) {
     value <- getInterface(className, .makeNew = FALSE)
     if(!is.null(value))
         eval(expr, envir = value)
-    assign(className, modules, envir = languageImports)
+    assign(className, modules, envir = env)
     invisible(TRUE)
 }
 
