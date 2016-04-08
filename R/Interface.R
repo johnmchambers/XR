@@ -185,6 +185,9 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
     else if(is.na(match(directory, path)))
         path <- c(path, el)
     env[[className]] <- path
+    value <- getInterface(className, .makeNew = FALSE)
+    if(!is.null(value))
+        value$AddToPath(directory, package, pos)
     invisible(path)
 }
 
@@ -333,18 +336,6 @@ getInterface <- function(Class, ..., .makeNew = NA, .select = NULL)  {
         current <- c(list(value), current)
     languageEvaluators[[className]] <- current
     languageEvaluators[[".Current"]] <- value
-    ## apply the path and import directives previously specified for this class
-    ## by serverAddToPath() and serverImport()
-    paths <- languagePaths[[className]]
-    if(!is.null(paths)) {
-        for(path in paths)
-            value$AddToPath(path, path@package, path@pos)
-    }
-    imports <- languageImports[[className]]
-    if(!is.null(imports)) {
-        for(expr in imports)
-            eval(expr)
-    }
     value
 }
 
@@ -436,8 +427,8 @@ until there actually is an evaluator, so that path and import operations can tak
                       ## initialize the system path and imports
                       className <- class(.self)
                       path <- languagePaths[[className]]
-                      for(dir in path)
-                          AddToPath(dir)
+                      for(dir in path) # requires all elements to be of class pathEl
+                          AddToPath(dir, dir@package, dir@pos)
                       imports <- languageImports[[className]]
                       for(expr in imports)
                           eval(expr, envir = .self)
