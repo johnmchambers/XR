@@ -16,6 +16,7 @@ ProxyClass$lock("language")
 #' @field .proxyObject the actual proxy reference
 #' @field .proxyClass the description of the server language class (name, module, langauge)
 #' @field .ev the evaluator that produced this proxy object.
+#' @template reference
 ProxyClassObject <- setRefClass("ProxyClassObject",
                                 fields = c(.proxyObject =  "AssignedProxy",
                                 .proxyClass = "ProxyClass", .ev = "Interface"),
@@ -31,6 +32,7 @@ ProxyClassObject <- setRefClass("ProxyClassObject",
 #'
 #' @param x,name,value Arguments to the operator.
 #' @name MiscMethods
+#' @template reference
 NULL
 
 #' @rdname MiscMethods
@@ -98,6 +100,7 @@ ProxyClassObject$methods(
 #' @param objName When using the \code{save=} argument to write R code, use this name in the
 #' assignment expression for the generator object.  By default, the name of the class.
 #' @param ... extra arguments to pass on to \code{setRefClass()}.
+#' @template reference
 setProxyClass <- function(Class, module = "",
                           fields = character(), methods = NULL,
                           ServerClass = Class,
@@ -338,6 +341,7 @@ inferXFields <- function(xFields = character(), readOnly = NULL,
 #' @field fields,methods named lists of the server language fields and methods to be exported
 #' @field operators named list of the server class methods that are "operator overloading" of functions.
 #' @field readOnly the names of any fields that should be made read-only in the R class
+#' @template reference
 ServerClassDef <- setRefClass("ServerClassDef",
                            fields  = c( methods = "namedList", fields = "namedList",
                            operators = "namedList", readOnly = "character"))
@@ -401,6 +405,7 @@ resolveProxyFields <- function(.Object, xfields, fields) {
 #' @slot name the name of the server language function
 #' @slot module the name of the module, if that needs to be imported
 #' @slot evaluatorClass the class for the evaluator, identifying which server lanaguage is involved.
+#' @template reference
 ProxyFunction <- setClass("ProxyFunction",
                           slots = c(name = "character", module = "character", evaluatorClass = "character"),
                           contains = c("function", "ProxyObject"))
@@ -483,6 +488,7 @@ setMethod("asServerObject", "ProxyClassObject",
 #' @param Class the server language class name.
 #' @param objName the name to use when assigning the class generator or the proxy function object; defaults respectively to
 #' the R class name and the server language function name.
+#' @template reference
 dumpProxyClass <- function(gen, file, Class, objName = Class) {
     if(identical(file, TRUE))
         file <- .dumpFileName(Class)

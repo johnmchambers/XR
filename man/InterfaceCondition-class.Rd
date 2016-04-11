@@ -12,4 +12,21 @@ be returned to R as objects from one of these classes.
 The interface evaluator will normally throw an error for \code{"InterfaceError"} and
 issue a warning for \code{"InterfaceWarning"}.
 }
+\section{Slots}{
+
+\describe{
+\item{\code{message}}{The character string message from the server language evaluator.}
+
+\item{\code{value}}{In the case of a warning, the object to return after issuing the condition.}
+
+\item{\code{expr}}{The expression sent to the server language that produced the condition.}
+
+\item{\code{evaluator}}{The interface evaluator object receiving the condition.}
+}}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

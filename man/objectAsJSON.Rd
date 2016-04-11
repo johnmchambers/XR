@@ -82,4 +82,10 @@ is part of an ordinary list, environment or other R object, this method will be 
 \item \code{ProxyClassObject}: Gets the object back from the server, then recalls the generic.
 See the comments under the \code{"AssignedProxy"} method.
 }}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

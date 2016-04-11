@@ -12,8 +12,9 @@ export(valueFromServer)
 export(nameQuote, fillNames)
 export(objectDictionary)
 export(getInterface)
-export(serverAddToPath, serverImport)
-export(languagePaths, languageImports)
+export(serverAddToPath, serverImport, serverTask)
+export(evaluatorAction) # so methods can be defined
+export(evaluatorActions) # really just for debugging
 
 export(setProxyClass, dumpProxyClass, dumpProxyFunction)
 

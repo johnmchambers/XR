@@ -28,4 +28,10 @@ By default, JSON is used to decode the string.  Otherwise the result of the basi
 decoding should be provided as argument \code{object}.
 Should be called by the implementation of ServerEval for individual interface classes.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

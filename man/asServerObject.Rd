@@ -50,4 +50,10 @@ a particular interface class could do something different, like refer to a table
 
 \item \code{ProxyClassObject}: an object from a proxy class will be replaced by the name of the referenced object
 }}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

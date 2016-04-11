@@ -17,4 +17,10 @@ The Definition of a Server Language Class
 
 \item{\code{readOnly}}{the names of any fields that should be made read-only in the R class}
 }}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

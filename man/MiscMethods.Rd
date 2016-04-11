@@ -19,4 +19,10 @@ Convenience methods are provided for operator \code{$} to give more informative 
 if \code{AssignedProxy} objects are assumed
 incorrectly to have a proxy class definition.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

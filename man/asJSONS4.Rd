@@ -20,4 +20,10 @@ The general converter for an object with a formal class
 or an object to be described via its S3 class, data and attributes.
 Not usually called directly, but from \code{\link{objectAsJSON}} or method in an interface package.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

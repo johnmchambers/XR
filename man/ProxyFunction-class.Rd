@@ -25,4 +25,10 @@ language will use a corresponding evaluator to find metadata about the server fu
 
 \item{\code{evaluatorClass}}{the class for the evaluator, identifying which server lanaguage is involved.}
 }}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

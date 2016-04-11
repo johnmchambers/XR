@@ -2,6 +2,7 @@
 % Please edit documentation in R/Interface.R
 \name{getInterface}
 \alias{evaluatorNumber}
+\alias{evaluatorTable}
 \alias{getInterface}
 \alias{rmInterface}
 \title{Get or start an evaluator for an interface}
@@ -10,7 +11,7 @@ getInterface(Class, ..., .makeNew = NA, .select = NULL)
 
 rmInterface(evaluator)
 
-evaluatorNumber(evaluator, add = TRUE)
+evaluatorNumber(evaluator, add = length(id) > 0)
 }
 \arguments{
 \item{Class}{the name of the interface class for this evaluator; by default, the class of the
@@ -52,7 +53,7 @@ If no \code{Class} is given, the current (i.e., last active) evaluator is return
 }
 \section{Functions}{
 \itemize{
-\item \code{rmInterface}: Remove an the specified  evaluator from the table of available interfaces.
+\item \code{rmInterface}: Remove the specified  evaluator from the table of available interfaces.
 
 \item \code{evaluatorNumber}: Return the sequential number for this evalutor; used in \code{ProxyName()} method.
 If not there: if \code{add}, add the evaluator to the table; else return \code{NA}.

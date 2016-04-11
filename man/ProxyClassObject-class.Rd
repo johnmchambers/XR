@@ -19,4 +19,10 @@ defined proxy class, then an object from that class is generated.
 
 \item{\code{.ev}}{the evaluator that produced this proxy object.}
 }}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

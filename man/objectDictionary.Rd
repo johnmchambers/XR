@@ -20,4 +20,10 @@ from a particular class.  This function creates the suitable form for such a dic
 the formal class or the contents of an object.  Used by some interface packages (e.g., XRJulia) but
 likely only of information value otherwise, to tell you how to code an object in the server language.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

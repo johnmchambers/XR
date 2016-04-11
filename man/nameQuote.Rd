@@ -16,4 +16,10 @@ the string with quotes.  But empty strings stay empty.
 Utility to surround names of classes, etc with double quotes (not the single quotes of
 shQuote or the fancy quotes of dQuote)
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

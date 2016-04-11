@@ -15,4 +15,10 @@ typeToJSON(object, prototype)
 Convert a simple object (should have no attributes or formal class) to JSON string.
 Called from some specific interface packages, usually to put quotes and escapes into a string.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

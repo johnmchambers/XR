@@ -14,4 +14,10 @@ fillNames(object, noNamesOK = FALSE)
 \description{
 A utility to fill in blank names in list elements to make it valid for a dictionary.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

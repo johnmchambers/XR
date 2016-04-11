@@ -67,4 +67,10 @@ whatever slots make sense.  The application method for \code{asRObject()} will t
 slots and construct whatever object is really intended.  For an example, see the method
 for class \code{vector_R}.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

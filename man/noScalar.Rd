@@ -15,6 +15,13 @@ Relies on the convention that XR interfaces leave S4 objects
 as vectors, not scalars, even when they are of length 1
 }
 \description{
-Force an object to be treated as a vector in the server language
+Ensure that an object is interpreted as a vector (array) when sent to the server language.
+The default strategy is to send length-1 vectors as scalars.
+}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
 }
 

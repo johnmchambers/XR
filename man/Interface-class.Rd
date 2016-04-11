@@ -29,10 +29,19 @@ evaluator class.}
 a class defined by the specific interface package, to distinguish its proxy classes. This
 field is passed as the \code{prototype} argument in calls to \code{\link{asServerObject}}.}
 
-\item{\code{simplify}}{Should lists whose elements are each basic scalars be unsted?
-Default FALSE.  May also be a function that takes a possibly simplifiabel
+\item{\code{simplify}}{Should lists whose elements are each basic scalars be unlisted?
+Default FALSE.  May also be a function that takes a possibly simplifiable
 list as argument and returns the vector/list result.
 Use this to apply a customized test; e.g., all scalars must have same type.}
+
+\item{\code{propertyFormat}}{The C-style format for a property (i.e., field) in the server language.
+The default assumes \code{"."} is the field operator, as in all likely server languages so far.}
+
+\item{\code{proxyClassTable}}{Used to keep track of proxy classes encountered}
+
+\item{\code{modules}}{The evaluator's table of currently imported modules.}
+
+\item{\code{serverPath}}{The evaluator's current server language path for importing.}
 }}
 \section{Methods}{
 
@@ -158,5 +167,14 @@ Returns a list of proxy objects (always a list even if only one object found).}
 also calls this method (recalling it later then does nothing).  In case some server action
 (like closing down a subprocess) is required, the $ServerQuit() method is called, and
 the evaluator is then removed from the table of interface evaluators.}
+
+\item{\code{initialize(...)}}{initializes the evaluator in a language-independent sense.  Should not be called
+until there actually is an evaluator, so that path and import operations can take place}
 }}
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

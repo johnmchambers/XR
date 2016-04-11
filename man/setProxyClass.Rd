@@ -61,4 +61,10 @@ method of the evaluator, specialized to the language. It can also be called with
 lists for the fields and methods.  The actual fields and methods will use the interface to
 access or call the corresponding code in the server language.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

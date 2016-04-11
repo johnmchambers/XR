@@ -26,4 +26,10 @@ treat `NaN` for doubles and have no mechanism for `NA` in other types.}
 x <- c(1:2,NA,4:5)
 vector_R(x)
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 

@@ -40,4 +40,10 @@ If called with the working directory set to the package source directory,
 the files go into the application package's R source, defining the same
 proxy functions or classes explicitly.
 }
+\references{
+Chambers, John M. (2016)
+\emph{Extending R},
+Chapman & Hall/CRC.
+(Chapter 12 is included in the \code{"doc"} directory of this package.)
+}
 
