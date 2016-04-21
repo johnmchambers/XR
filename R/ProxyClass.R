@@ -145,9 +145,9 @@ setProxyClass <- function(Class, module = "",
             if(missing(proxyObjectClass)) # may be language-specific, for asServerObject() methods
                 proxyObjectClass <- class(evaluator$prototypeObject)
         }
-        if(!identical(save, FALSE) && isClass(Class_R))
+        if(!identical(save, FALSE) && isClass(Class_R, where = where))
             ## likely a redefinition, so remove the previous version to avoid errors
-            removeClass(Class_R)
+            removeClass(Class_R, where = where)
         generator <- setRefClass(Class_R,
                                  contains = c(contains, proxyObjectClass),
                                  fields = fields,
