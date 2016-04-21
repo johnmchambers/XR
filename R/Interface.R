@@ -66,9 +66,9 @@ typeToClass <- function(type) {
         .vectors[[tt]]
 }
 
-#' Force an object to be treated as a vector in the server language
+#' Send a Non-scalar Version of an Object
 #'
-#' Ensure that an object is interpreted as a vector (array) when sent to the server language.
+#' Ensures that an object is interpreted as a vector (array) when sent to the server language.
 #' The default strategy is to send length-1 vectors as scalars.
 #'
 #' @return the object, but with the S4 bit turned on.
