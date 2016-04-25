@@ -903,14 +903,14 @@ generally be shared among languages, must unserialize the entire file.'
         }
         value
     },
-    SaveProxyFunction = function(save, object, objName = obj@name) {
+    SaveProxyFunction = function(save, object, objName = obj@name, docText = NULL, docFunction = createRoxygen) {
         'The object is an expanded function definition, provided by the initialize method for this class.
 `save` should be either an environment in which to assign it or a place to dump the R source, either an
 open connection or a file name.'
         if(is(save, "environment"))
             assign(objName, object, envir = save)
         else
-            dumpProxyFunction(save, object, objName)
+            dumpProxyFunction(save, object, objName, docText, docFunction)
     }
 )
 

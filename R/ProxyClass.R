@@ -112,7 +112,9 @@ setProxyClass <- function(Class, module = "",
                           readOnly = NULL,
                           ...,
                           save = FALSE,
-                          objName = Class) {
+                          objName = Class,
+                          docText = NULL,
+                          docFunction = createRoxygen) {
     ## in the case everything is specified (usually after a dumpProxyClasses())
     ## construct the reference class with no server side computation
     if(!(is.null(fields) || is.null(methods) || missing(language)))
@@ -197,7 +199,7 @@ setProxyClass <- function(Class, module = "",
     else if(is(save, "environment"))
         assign(objName, generator, envir = save)
     else
-        dumpProxyClass(generator, save, objName)
+        dumpProxyClass(generator, save, objName, docText = docText, docFunction = docFunction)
     generator
 }
 
@@ -226,10 +228,13 @@ inferX <- function(what, xMethod, language) {
     methodName <- what
     ## the stored element can be a function, if ServerClass computes the proxy
     ## method.
-    ## Otherwise, the function is defined with "..." for args.  If xMethod is,
+    ## Otherwise, the function is defined with "..." for args.  If xMethod is
     ## a character string for the argument list (esp. character() for no arguments),
     ## this information is inserted into the docString for the R method.
-    if(is(xMethod, "function")) { }
+    if(is(xMethod, "function")) {
+        ## possibly a ProxyFunction
+        inferDoc(xMethod, language)
+    }
     else {
         if(is.null(xMethod))
             docString <- gettextf("%s method %s(...)",language, methodName)
@@ -241,13 +246,27 @@ inferX <- function(what, xMethod, language) {
         else
             stop(gettextf("Expected NULL, an arg list or the method as a function: got class %s",
                           dQuote(class(xMethod))))
-        xMethod <- eval(substitute(function(..., .get = NA) {
+        eval(substitute(function(..., .get = NA) {
             DOCSTRING
             .ev$MethodCall(.proxyObject, WHAT, ..., .get = .get)
         }, list(WHAT = methodName,
                 DOCSTRING = docString)))
     }
-    xMethod
+}
+
+## Insert a server documentation string into a method definition
+inferDoc <- function(fun, language) {
+    if(is(fun, "ProxyFunction") && length(fun@serverDoc)) {
+        doc <- fun@serverDoc
+        doc[[1]] <- gettextf("%s Documentation: %s", language, doc[[1]])
+        ll <- as.list(body(fun))
+        if(identical(ll[[1]], as.name("{")))
+            ll <- base::append(ll, doc, 1)
+        else
+            ll <- list(as.name("{"), doc, body(fun))
+        body(fun) <- as.call(ll)
+    }
+    fun
 }
 
 inferXFields <- function(xFields = character(), readOnly = NULL,
@@ -405,44 +424,46 @@ resolveProxyFields <- function(.Object, xfields, fields) {
 #' @slot name the name of the server language function
 #' @slot module the name of the module, if that needs to be imported
 #' @slot evaluatorClass the class for the evaluator, identifying which server lanaguage is involved.
+#' @slot serverDoc documentation for the server language function
+#' @slot serverArgs the formal arguments of the server language function, if known
 #' @template reference
 ProxyFunction <- setClass("ProxyFunction",
-                          slots = c(name = "character", module = "character", evaluatorClass = "character"),
+                          slots = c(name = "character", module = "character", evaluatorClass = "character",
+                                    serverDoc = "character", serverArgs = "character"),
                           contains = c("function", "ProxyObject"))
 
 setMethod("initialize", "ProxyFunction",
-          function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA) {
-              ## an escape for the case that dumpProxyFunction()
-              ## was used to avoid the need for server evaluation:
-              if(methods::hasArg(".Data")) {
-                  ## set the slots directly.  Should really
-                  ## do a callNextMethod(), but it's known to be the deffault
-                  ## method & there is a bug in setting .Data in that method (R3.2.2)
+          function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA, .Data = NULL, save = FALSE, objName = name, docText = NULL, docFunction = createRoxygen) {
+              ## .Data is set either directly from code in a setup step
+              ## or at the end of an initialize() method specialized to a server language
+              if(is.null(.Data)) {
+                  args <- as.list(formals(prototype))
+                  anames <- paste(allNames(args), collapse = ", ")
+                  if(is(evaluator, "character") && length(evaluator) == 1) # the class for the evaluator or ""
+                  {}
+                  else if(is(evaluator, "Interface"))
+                      evaluator <- class(evaluator)
+                  else
+                      stop(gettextf(
+                          "The evaluator= argument should be an evaluator or its class; got %s",
+                          dQuote(class(evaluator))))
+                  deflt <- substitute(XR::getInterface(WHAT), list(WHAT = evaluator))
+                  formals(prototype) <- c(args, list(.evaluator = deflt, .get = .get))
+                  text <- gettextf('.evaluator$Call(%s,%s, .get = .get)', nameQuote(name), anames)
+                  body(prototype) <- parse(text = text)[[1]]
+                  .Object@.Data <- prototype
                   .Object@name <- name
                   .Object@module <- module
-                  args <- list(...)
-                  for(sl in names(args))
-                      slot(.Object, sl) <- args[[sl]]
-                  return(.Object)
+                  .Object@evaluatorClass <- class(evaluator)
               }
-              args <- as.list(formals(prototype))
-              anames <- paste(allNames(args), collapse = ", ")
-              if(is(evaluator, "character") && length(evaluator) == 1) # the class for the evaluator or ""
-              {}
-              else if(is(evaluator, "Interface"))
-                  evaluator <- class(evaluator)
-              else
-                  stop(gettextf(
-                      "The evaluator= argument should be an evaluator or its class; got %s",
-                      dQuote(class(evaluator))))
-              deflt <- substitute(XR::getInterface(WHAT), list(WHAT = evaluator))
-              formals(prototype) <- c(args, list(.evaluator = deflt, .get = .get))
-              text <- gettextf('.evaluator$Call(%s,%s, .get = .get)', nameQuote(name), anames)
-              body(prototype) <- parse(text = text)[[1]]
-              .Object@.Data <- prototype
-              .Object@name <- name
-              .Object@module <- module
-              .Object@evaluatorClass <- class(evaluator)
+              else {
+                  ## set the slots directly
+                  .Object@name <- name
+                  .Object@module <- module
+                  .Object@.Data <- .Data
+              }
+              if(!identical(save, FALSE))
+                  evaluator$SaveProxyFunction(save, .Object, objName, docText, docFunction)
               callNextMethod(.Object, ...)
           })
 
@@ -486,10 +507,12 @@ setMethod("asServerObject", "ProxyClassObject",
 #' May also be a connection.  If the file or connection is not open, it is opened and then
 #' closed on exit.
 #' @param Class the server language class name.
-#' @param objName the name to use when assigning the class generator or the proxy function object; defaults respectively to
-#' the R class name and the server language function name.
+#' @param ... arguments to pass to .dumpOneClass(). First, \code{objName}, the name to use when assigning the class generator or the proxy function object; defaults respectively to
+#' the R class name and the server language function name.  Then \code{docText}, optional
+#' documentation text for roxygen-style comments to be inserted when the definition is
+#' being saved.
 #' @template reference
-dumpProxyClass <- function(gen, file, Class, objName = Class) {
+dumpProxyClass <- function(gen, file, Class, ...) {
     if(identical(file, TRUE))
         file <- .dumpFileName(Class)
     if(is(file, "connection") && isOpen(file))
@@ -502,7 +525,7 @@ dumpProxyClass <- function(gen, file, Class, objName = Class) {
         on.exit(close(con))
     }
     Class <- gen@className
-    .dumpOneClass(Class, con, objName)
+    .dumpOneClass(Class, con, ...)
 }
 
 .dumpFileName <- function(classes,thing = "Class") {
@@ -517,11 +540,13 @@ dumpProxyClass <- function(gen, file, Class, objName = Class) {
     file
 }
 
-.dumpOneClass <- function(ProxyClass, con, name = ProxyClass) {
+.dumpOneClass <- function(ProxyClass, con, name = ProxyClass, docText = NULL, docFunction = createRoxygen) {
     classDef <- getClass(ProxyClass)
     if(!extends(ProxyClass, "ProxyClassObject"))
         stop(gettextf("Class %s is not a proxy class; should extend \"ProxyClassObject\"",
                       dQuote(ProxyClass)))
+    if(length(docText)) # write some documentation comments (default, roxygen)
+        docFunction(con, docText, classDef)
     rmethods <- classDef@refMethods
     info <- rmethods[["ServerClassInfo"]]
     pc <- info()
@@ -578,12 +603,78 @@ dumpProxyClass <- function(gen, file, Class, objName = Class) {
     text
 }
 
+## augment documentation title with metadata
+ProxyDoc <- setClass("ProxyDoc",
+                        slots = c(title = "character", description = "character",
+                        details = "character", usage = "character", sections = "list"))
+
+setGeneric("makeProxyDoc",
+           function(object, docText, language = "Proxy", ...) {
+               doc <- ProxyDoc(...)
+               docText <- unlist(strsplit(docText, "\n"))
+               doc@title <- if(length(docText)) {
+                   title <- docText[1]
+                   docText <- docText[-1]
+                   title
+               } else ""
+               while(length(docText)  && !nzchar(docText[[1]]))
+                   docText <- docText[-1]
+               doc@description <- c(doc@description, docText)
+               doc
+           })
+
+setMethod("makeProxyDoc", "ProxyFunction",
+          function(object, docText, language = "Proxy", ...) {
+              if(length(object@serverDoc))
+                  docText <- c(docText, "", gettextf("[%s Documentation]", language),object@serverDoc)
+              doc <- callNextMethod()
+              doc@usage <- gettextf("%s(%s) [%s]",object@name, paste(object@serverArgs, collapse = ", "),
+                                        language)
+              doc
+          })
+
+createRoxygen <- function(con, docText, object, evaluator = getInterface()) {
+    ## create a doc object
+    doc <- makeProxyDoc(object, docText, evaluator$languageName)
+    rox <- c(doc@title,"", doc@description)
+    if(length(doc@details))
+        rox <- c(rox, "", doc@details)
+    if(length(doc@usage))
+        rox <- c(rox, "@section Proxy Function:", doc@usage)
+    if(length(doc@sections)) {
+        sections <- doc@sections
+        what <- names(sections)
+        for(i in seq_along(sections))
+            rox <- c(rox, gettextf("@section %s:", what[[i]]), sections[[i]])
+    }
+    ## make all lines roxygen-style comments
+    which <- !grepl("^#' ", rox)
+    if(any(which))
+        rox[which] <- paste("#'", rox[which])
+    writeLines(rox, con)
+    writeFakeObject(object, con)
+}
+
+## a generic function to write a dummy or other version of an object
+## to correspond to the documentation comments from createRoxygen
+setGeneric("writeFakeObject", function(object, con) NULL)
+
+setMethod("writeFakeObject", "refClassRepresentation",
+          function(object, con) {
+              name <- object@className
+              ## todo: get the proxy fields from object@fieldClasses
+              writeLines(c(gettextf("%s <- setRefClass(%s, fields = %s)",
+                                    name, dQuote(name), "character()"),
+                           ""), con)
+          })
+
+
 #' @rdname dumpProxyClass
 #'
 #' @param object the proxy object, constructed by the initialization method for one of the proxy
 #' function classes, such as \code{"PythonFunction"}.
 dumpProxyFunction <-
-function(file, object, objName = object@name) {
+function(file, object, objName = object@name, docText, writeDoc = createRoxygen) {
     if(identical(file, TRUE))
         file  <- .dumpFileName(object@name, "Function")
     if(is(file, "connection") && isOpen(file))
@@ -595,6 +686,8 @@ function(file, object, objName = object@name) {
             con <- base::file(file, "w")
         on.exit(close(con))
     }
+    if(length(docText))
+        writeDoc(con, docText, object)
     cat(gettextf("%s <- ", objName), file = con)
     dput(object, con)
 }
