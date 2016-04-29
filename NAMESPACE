@@ -16,7 +16,7 @@ export(serverAddToPath, serverImport, serverTask)
 export(evaluatorAction) # so methods can be defined
 export(evaluatorActions) # really just for debugging
 
-export(setProxyClass, dumpProxyClass, dumpProxyFunction)
+export(setProxyClass)
 
 export(Interface, ServerClassDef)
 exportClass(Interface, ServerClassDef)

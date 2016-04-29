@@ -115,13 +115,15 @@ setProxyClass <- function(Class, module = "",
                           objName = Class,
                           docText = NULL,
                           docFunction = createRoxygen) {
-    ## in the case everything is specified (usually after a dumpProxyClasses())
+    ## in the case everything is specified (usually after a dumpProxyClass())
     ## construct the reference class with no server side computation
-    if(!(is.null(fields) || is.null(methods) || missing(language)))
-        generator <- setRefClass(paste0(Class,"_",language),
+    if(!(is.null(fields) || is.null(methods) || missing(language))) {
+        Class_R <- paste0(Class,"_",language)
+        generator <- setRefClass(Class_R,
                                  contains = c(contains, proxyObjectClass),
                                  fields = fields, methods = methods,
                                  where = where)
+    }
     else {
         if(missing(evaluatorClass)) {
             evaluator <-  XR::getInterface()
@@ -147,59 +149,65 @@ setProxyClass <- function(Class, module = "",
             if(missing(proxyObjectClass)) # may be language-specific, for asServerObject() methods
                 proxyObjectClass <- class(evaluator$prototypeObject)
         }
-        if(!identical(save, FALSE) && isClass(Class_R, where = where))
-            ## likely a redefinition, so remove the previous version to avoid errors
-            removeClass(Class_R, where = where)
-        generator <- setRefClass(Class_R,
-                                 contains = c(contains, proxyObjectClass),
-                                 fields = fields,
-                                 where = where)
-        ## construct the $initialize() method.
-        ## "language" is specified before user-supplied args and locked
-        if(nzchar(module))
-            importModule <- substitute(evaluator$Import(SERVERMODULE), list(SERVERMODULE = module))
-        else
-            importModule <- NULL
-        initMethod <- eval(substitute(
-            function(..., evaluator,
-                     .serverObject) {
-                if(missing(evaluator))
-                    evaluator <- XR::getInterface(ICLASS)
-                if(missing(.serverObject)) {
-                    ## (can't use default in arg list, substitute doesn't find it)
-                    IMPORT
-                    .serverObject <- evaluator$New(SERVERCLASS, SERVERMODULE, ...)
-                }
-                if(is(.serverObject, "ProxyClassObject"))
-                    proxy <- .serverObject$.proxyObject
-                else
-                    proxy <- .serverObject ## had better be an AssignedProxy
-                .proxyObject <<- proxy
-                .ev <<- evaluator
-            }, list(LANGUAGE = language, SERVERCLASS = ServerClass,
-                    ICLASS = evaluatorClass, SERVERMODULE = module,
-                    IMPORT = importModule)))
-        ## construct the ServerClassInfo() method.  Must be executable as a pure
-        ## function (used by dumpProxyClasses)
-        infoMethod <- function() list()
-        ## the list to be returned by the method
-        body(infoMethod) <- list(ServerClass = ServerClass, ServerModule = module,
-                                 language = language, evaluatorClass = evaluatorClass,
-                                 proxyFields = names(fields), proxyMethods = c("initialize", "ServerClassInfo", names(methods)),
-                                 proxyContains = contains, proxyObjectClass = proxyObjectClass)
-        ## enter the R methods for the server language methods & fields
-        do.call(generator$methods, c(list(initialize = initMethod, ServerClassInfo = infoMethod),
-                                     methods))
-        ## assign in this evaluator's proxyClassTable, in case a previous search
-        ## for the proxy class had failed, causing NA to be stored there.
-        if(is(evaluator, "Interface"))
-            base::assign(Class, Class_R, envir = evaluator$proxyClassTable)
+        noSet <- !identical(save, FALSE) && isClass(Class_R, where = where) &&
+                 classDefIsLocked(getClass(Class_R, where = where))
+        if(noSet){ # just dump the current version
+            generator <- classGeneratorFunction(getClass(Class_R, where = where), where = where)
+        }
+        else {
+            generator <- setRefClass(Class_R,
+                                     contains = c(contains, proxyObjectClass),
+                                     fields = fields,
+                                     where = where)
+            ## construct the $initialize() method.
+            ## "language" is specified before user-supplied args and locked
+            if(nzchar(module))
+                importModule <- substitute(evaluator$Import(SERVERMODULE), list(SERVERMODULE = module))
+            else
+                importModule <- NULL
+            initMethod <- eval(substitute(
+                function(..., evaluator,
+                         .serverObject) {
+                    if(missing(evaluator))
+                        evaluator <- XR::getInterface(ICLASS)
+                    if(missing(.serverObject)) {
+                        ## (can't use default in arg list, substitute doesn't find it)
+                        IMPORT
+                        .serverObject <- evaluator$New(SERVERCLASS, SERVERMODULE, ...)
+                    }
+                    if(is(.serverObject, "ProxyClassObject"))
+                        proxy <- .serverObject$.proxyObject
+                    else
+                        proxy <- .serverObject ## had better be an AssignedProxy
+                    .proxyObject <<- proxy
+                    .ev <<- evaluator
+                }, list(LANGUAGE = language, SERVERCLASS = ServerClass,
+                        ICLASS = evaluatorClass, SERVERMODULE = module,
+                        IMPORT = importModule)))
+            ## construct the ServerClassInfo() method.  Must be executable as a pure
+            ## function (used by dumpProxyClasses)
+            infoMethod <- function() list()
+            ## the list to be returned by the method
+            body(infoMethod) <- list(ServerClass = ServerClass, ServerModule = module,
+                                     language = language, evaluatorClass = evaluatorClass,
+                                     proxyFields = names(fields), proxyMethods = c("initialize", "ServerClassInfo", names(methods)),
+                                     proxyContains = contains, proxyObjectClass = proxyObjectClass)
+            ## enter the R methods for the server language methods & fields
+            methods <- c(list(initialize = initMethod, ServerClassInfo = infoMethod),
+                         methods)
+            if(noSet) {} # just the proxy
+            else
+                do.call(generator$methods, methods)
+            ## assign in this evaluator's proxyClassTable, in case a previous search
+            ## for the proxy class had failed, causing NA to be stored there.
+            if(is(evaluator, "Interface"))
+                base::assign(Class, Class_R, envir = evaluator$proxyClassTable)
+        }
+        if(identical(save, FALSE)) {}
+        else {
+            dumpProxyClass(generator, save, Class_R, contains, fields, name = objName, docText = docText, docFunction = docFunction)
+        }
     }
-    if(identical(save, FALSE)) {}
-    else if(is(save, "environment"))
-        assign(objName, generator, envir = save)
-    else
-        dumpProxyClass(generator, save, objName, docText = docText, docFunction = docFunction)
     generator
 }
 
@@ -502,51 +510,41 @@ setMethod("asServerObject", "ProxyClassObject",
 #' If called with the working directory set to the package source directory,
 #' the files go into the application package's R source, defining the same
 #' proxy functions or classes explicitly.
-#' @param gen the generator object for the class.
-#' @param file where to write the generated R code.  If simply \code{TRUE}, a name is constructed from the function or  class names.
+#' @param gen   If \code{save} is an environment, the generator object for the class. ignored otherwise.
+#' @param save where to write the generated R code.  If simply \code{TRUE}, a name is constructed from the function or  class names.
 #' May also be a connection.  If the file or connection is not open, it is opened and then
-#' closed on exit.
-#' @param Class the server language class name.
-#' @param ... arguments to pass to .dumpOneClass(). First, \code{objName}, the name to use when assigning the class generator or the proxy function object; defaults respectively to
-#' the R class name and the server language function name.  Then \code{docText}, optional
+#' closed on exit.  Allowed to be an environment (not currently used).
+#' @param ProxyClass the server language class name.
+#' @param docText,docFunction  \code{docText} optional
 #' documentation text for roxygen-style comments to be inserted when the definition is
-#' being saved.
+#' being saved; \code{docFunction}, the function to generate the documentation.  By default uses roxygen-style comments.
 #' @template reference
-dumpProxyClass <- function(gen, file, Class, ...) {
-    if(identical(file, TRUE))
-        file <- .dumpFileName(Class)
-    if(is(file, "connection") && isOpen(file))
-        con <- file
+dumpProxyClass <- function(gen, save, ProxyClass, contains, fields, name, docText = NULL, docFunction = createRoxygen) {
+    if(identical(save, TRUE))
+        save <- .dumpFileName(ProxyClass)
+    if(is(save, "connection") && isOpen(save))
+        con <- save
     else {
-        if(is(file, "connection"))
-            con <- open(file, "w")
+        if(is(save, "connection"))
+            con <- open(save, "w")
         else
-            con <- base::file(file, "w")
+            con <- base::file(save, "w")
         on.exit(close(con))
     }
-    Class <- gen@className
-    .dumpOneClass(Class, con, ...)
-}
-
-.dumpFileName <- function(classes,thing = "Class") {
-    if(length(classes) == 1)
-        what <- classes
-    else
-        what <- paste0(classes[[1]], "---")
-    file <- gettextf("Proxy_%s_%s.R", what, thing)
-    ## check for wd being a package source directory, if so, use the R/ subdirectory
-    if(file.exists("DESCRIPTION") && identical(file.info("R")$isdir, TRUE))
-        file <- paste0("R/", file)
-    file
-}
-
-.dumpOneClass <- function(ProxyClass, con, name = ProxyClass, docText = NULL, docFunction = createRoxygen) {
+    if(is(save, "environment")) {
+        assign(name, gen, envir = save)
+        return(NULL)
+    }
     classDef <- getClass(ProxyClass)
     if(!extends(ProxyClass, "ProxyClassObject"))
         stop(gettextf("Class %s is not a proxy class; should extend \"ProxyClassObject\"",
                       dQuote(ProxyClass)))
-    if(length(docText)) # write some documentation comments (default, roxygen)
-        docFunction(con, docText, classDef)
+    if(length(docText)) { # write some documentation comments (default, roxygen) with a preliminary class defn if needed.
+        classExpr <- gettextf("%s <- setRefClass(%s, contains = c(%s), fields = c(%s))", name, dQuote(ProxyClass),
+                              paste(dQuote(c(contains, "proxyObject")), collapse = ", "),
+                              paste(dQuote(fields), collapse = ", "))
+        docFunction(con, docText, classExpr)
+    }
     rmethods <- classDef@refMethods
     info <- rmethods[["ServerClassInfo"]]
     pc <- info()
@@ -567,6 +565,21 @@ dumpProxyClass <- function(gen, file, Class, ...) {
         text <- c(text, "",  .dumpLocalMethods(ProxyClass, methods))
     text <- c(text, "")
     writeLines(text, con)
+}
+
+.dumpFileName <- function(classes,thing = "Class") {
+    if(length(classes) == 1)
+        what <- classes
+    else
+        what <- paste0(classes[[1]], "---")
+    file <- gettextf("Proxy_%s_%s.R", what, thing)
+    ## check for wd being a package source directory, if so, use the R/ subdirectory
+    if(file.exists("DESCRIPTION") && identical(file.info("R")$isdir, TRUE))
+        file <- paste0("R/", file)
+    file
+}
+
+.dumpOneClass <- function(ProxyClass, gen, con, name = ProxyClass, docText = NULL, docFunction = createRoxygen) {
 }
 
 .dumpProxyFields <- function(fieldnames) {
@@ -633,7 +646,7 @@ setMethod("makeProxyDoc", "ProxyFunction",
               doc
           })
 
-createRoxygen <- function(con, docText, object, evaluator = getInterface()) {
+createRoxygen <- function(con, docText, setText, evaluator = getInterface()) {
     ## create a doc object
     doc <- makeProxyDoc(object, docText, evaluator$languageName)
     rox <- c(doc@title,"", doc@description)
@@ -651,8 +664,7 @@ createRoxygen <- function(con, docText, object, evaluator = getInterface()) {
     which <- !grepl("^#' ", rox)
     if(any(which))
         rox[which] <- paste("#'", rox[which])
-    writeLines(rox, con)
-    writeFakeObject(object, con)
+    writeLines(c(rox, setText), con)
 }
 
 ## a generic function to write a dummy or other version of an object
@@ -696,3 +708,28 @@ function(file, object, objName = object@name, docText, writeDoc = createRoxygen)
 setMethod("proxyName", "ProxyClassObject",
           function(x)
               callGeneric(x$.proxyObject))
+
+
+## temporary definition of two functions until the methods package has exported versions
+classDefIsLocked <- function(Class) {
+    methods:::.classDefIsLocked(Class)
+}
+
+classGeneratorFunction <- function (classDef, env = topenv(parent.frame()))
+{
+    if (is(classDef, "classRepresentation")) {
+    }
+    else if (is(classDef, "character")) {
+        if (is.null(packageSlot(classDef)))
+            classDef <- getClass(classDef, where = env)
+        else classDef <- getClass(classDef)
+    }
+    else stop("argument 'classDef' must be a class definition or the name of a class")
+    fun <- function(...) NULL
+    body(fun) <- substitute(new(CLASS, ...), list(CLASS = classDef@className))
+    environment(fun) <- env
+    fun <- as(fun, "classGeneratorFunction")
+    fun@className <- classDef@className
+    fun@package <- classDef@package
+    fun
+}
