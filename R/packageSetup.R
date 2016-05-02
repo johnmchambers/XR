@@ -11,17 +11,19 @@
 #' working directory to find the package name.  The package must have been installed in the
 #' library path of this R session.
 #'
-#' @param file The name of the files to be parsed and evaluated for the setup step.  By default,
-#' looks for \code{"setup.R"} in the inst/tools directory or the current directory.
+#' @param file The name of the files to be parsed and evaluated for the setup step,  by default,
+#' \code{"setup.R"}.  Will look in the the current directory or the inst/tools directory
+#' for a file of this name.
 #' @param dir Optional directory to use as the working directory for the evaluation. By default
 #' the current working directory should be the source directory for the package.
 #' @param needPackage The package for which the setup is intended.  Not needed if the working
 #' directory (either currently or given by \code{dir} is the source directory for that package.
 #' If supplied can be either the package name or \code{FALSE} if the setup is not intended for
 #' a package.
-packageSetup <- function(file = .findSetup(), dir = ".", needPackage = TRUE) {
-    .findSetup <- function() {
-        for(f in c("inst/setup.R", "inst/tools/setup.R", "./setup.R"))
+packageSetup <- function(file = "setup.R", dir = ".", needPackage = TRUE) {
+    .findSetup <- function(file) {
+        files <- paste(c(".", "inst/tools", "inst"),file, sep ="/")
+        for(f in files)
             if(file.exists(f)) return(f)
         NULL
     }
@@ -42,11 +44,15 @@ packageSetup <- function(file = .findSetup(), dir = ".", needPackage = TRUE) {
                           dQuote(getwd())))
             package <- read.dcf("DESCRIPTION")[,"Package"][[1]]
         }
+        ## use an environment acting like the package namespace, but
+        ## empty and not locked
         env <- new.env(parent = asNamespace(package))
         assign(".packageName", package, envir = env)
     }
+    ff <- .findSetup(file)
+    if(is.null(ff))
+        stop(gettextf("No file %s in local directory or inst/tools",
+                      dQuote(file)))
     options(topLevelEnvironment = env) # metadata for classes, methods, goes here
-    if(is.null(file))
-        stop("No file argument, and couldn't find setup.R")
-    eval(parse(file),env)
+    eval(parse(ff),env)
 }
