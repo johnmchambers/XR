@@ -33,3 +33,6 @@ export(fixHelpTopic)
 export(from_Server)
 exportClass(from_Server)
 exportClass(Unconvertible)
+
+## export these functions so subclass objects can use them
+export(dumpProxyFunction, dumpProxyClass)

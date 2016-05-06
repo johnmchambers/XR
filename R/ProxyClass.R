@@ -174,7 +174,7 @@ setProxyClass <- function(Class, module = "",
                     ICLASS = evaluatorClass, SERVERMODULE = module,
                     IMPORT = importModule)))
         ## construct the ServerClassInfo() method.  Must be executable as a pure
-        ## function (used by dumpProxyClasses)
+        ## function (used by dumpProxyClass)
         infoMethod <- function() list()
         ## the list to be returned by the method
         body(infoMethod) <- list(ServerClass = ServerClass, ServerModule = module,
@@ -627,7 +627,7 @@ setMethod("makeProxyDoc", "ProxyFunction",
               doc
           })
 
-createRoxygen <- function(object, con, docText, setText, evaluator = getInterface()) {
+createRoxygen <- function(object, con, docText, setText = character(), evaluator = getInterface()) {
     ## create a doc object
     doc <- makeProxyDoc(object, docText, evaluator$languageName)
     rox <- c(doc@title,"", doc@description)
@@ -679,10 +679,14 @@ function(file, object, objName = object@name, docText, writeDoc = createRoxygen)
             con <- base::file(file, "w")
         on.exit(close(con))
     }
-    if(length(docText))
-        writeDoc(con, docText, object)
+    if(length(docText)) {
+        settext <- c(gettextf("%s <- function(..., .ev = XR::getInterface(), .get = NA)",
+                              objName), "    NULL", "")
+        writeDoc(object, con, docText, settext)
+    }
     cat(gettextf("%s <- ", objName), file = con)
     dput(object, con)
+    cat("\n", file = con)
 }
 
 ## proxyName defined earlier (in Interface.R)
