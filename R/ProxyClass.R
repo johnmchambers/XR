@@ -519,6 +519,9 @@ dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, do
             con <- base::file(save, "w")
         on.exit(close(con))
     }
+    info <- methods[["ServerClassInfo"]]
+    pc <- info()
+    fields <- pc$proxyFields
     if(length(docText)) { # write some documentation comments (default, roxygen) with a preliminary class defn if needed.
         ## Bug in methods::setRefClass: can't include 0 length fields arg. (R3.3.0)
         ## Until fixed, following workaround
@@ -531,15 +534,12 @@ dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, do
                               paste(dQuote(c(contains, "ProxyClassObject")), collapse = ", "))
         docFunction(new("ProxyClass"), con, docText, classExpr)
     }
-    info <- methods[["ServerClassInfo"]]
-    pc <- info()
     text <- gettextf("%s <- XR::setProxyClass(%s, module = %s,", ProxyClass, nameQuote(pc$ServerClass), nameQuote(pc$ServerModule))
     text <- c(text, gettextf("    evaluatorClass = %s, language = %s, proxyObjectClass = %s,",
                              nameQuote(pc$evaluatorClass), nameQuote(pc$language), nameQuote(pc$proxyObjectClass)))
     contains <- pc$proxyContains
     if(length(contains))
         text <- c(text, gettextf("    contains = %s,", deparse(contains)))
-    fields <- pc$proxyFields
     if(length(fields))
         text <- c(text, "    methods = list(),", .dumpProxyFields(fields))
     else
