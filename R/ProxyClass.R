@@ -680,8 +680,10 @@ function(file, object, objName = object@name, docText, writeDoc = createRoxygen)
         on.exit(close(con))
     }
     if(length(docText)) {
-        settext <- c(gettextf("%s <- function(..., .ev = XR::getInterface(), .get = NA)",
-                              objName), "    NULL", "")
+        .get <- as.list(object)$.get
+        if(is.null(.get)) .get <- "NA" else .get <- deparse(.get)
+        settext <- c(gettextf("%s <- function(..., .ev = XR::getInterface(), .get = %s)",
+                              objName, .get), "    NULL", "")
         writeDoc(object, con, docText, settext)
     }
     cat(gettextf("%s <- ", objName), file = con)
