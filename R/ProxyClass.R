@@ -641,6 +641,8 @@ createRoxygen <- function(object, con, docText, setText = character(), evaluator
         for(i in seq_along(sections))
             rox <- c(rox, gettextf("@section %s:", what[[i]]), sections[[i]])
     }
+    ## export:  this should be optional?
+    rox <- c(rox, "@export")
     ## make all lines roxygen-style comments
     which <- !grepl("^#' ", rox)
     if(any(which))

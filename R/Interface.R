@@ -1534,8 +1534,9 @@ typeToJSON <- function(object, prototype) {
                    object[is.na(object)] <- NaN
                }, integer = , character = , logical =  {
                    if(any(is.na(object))) {
-                       obj <- vector_R(obj)
-                       obj[is.na(obj)] <- TRUE
+                       obj <- vector_R(object)
+                       obj@missing <- which(is.na(object))
+                       obj@data[obj@missing] <- .notNA(typeof(object))
                        return(objectAsJSON(obj, prototype))
                    }
                },
@@ -1574,6 +1575,15 @@ typeToJSON <- function(object, prototype) {
         paste("[", value, "]") # force a vector
     else
         JSONScalar(value)
+}
+
+## something to subsitute for NA in vecor_R representation
+.notNA <- function(type) {
+    switch(type,
+           character = "",
+           logical = FALSE,
+           integer = 999L,
+           NULL)
 }
 
 #' Convert the String Returned by a Server Language Interface to an R Object.
