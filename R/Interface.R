@@ -1752,7 +1752,7 @@ setMethod("$", "from_Server",
 setMethod("show", "from_Server",
           function(object) {
               cat(gettextf("R conversion of %s object of class %s\n\nConverted fields:\n",
-                           object@language, dQuote(object@Class)))
+                           object@language, dQuote(object@serverClass)))
               methods::show(as.list(object@fields))
           })
 
