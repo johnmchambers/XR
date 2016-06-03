@@ -23,7 +23,19 @@ ProxyClassObject <- setRefClass("ProxyClassObject",
                                 contains = "ProxyObject",
                                 )
 
-## a convenience method, to give a more informative error message
+
+ProxyClassObject$methods(
+    size = function() {
+        'returns the server-language size of the object, possibly NA'
+        .proxyObject@size
+       },
+    proxyName = function() {
+        'the character string under which the server language object is assigned.
+         Useful to examine the object in a shell for the server language.'
+        as.character(.proxyObject)
+    }
+    )
+
 #' Miscellaneous methods
 #'
 #' Convenience methods are provided for operator \code{$} to give more informative error messages
