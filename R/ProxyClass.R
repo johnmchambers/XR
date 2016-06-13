@@ -233,8 +233,7 @@ inferXMethods <- function(methodDefs, language) {
   }
 
 ## create a method from:  just the name, the name and arguments, or a function
-inferX <- function(what, xMethod, language) {
-    methodName <- what
+inferX <- function(methodName, xMethod, language) {
     ## the stored element can be a function, if ServerClass computes the proxy
     ## method.
     ## Otherwise, the function is defined with "..." for args.  If xMethod is
@@ -242,7 +241,7 @@ inferX <- function(what, xMethod, language) {
     ## this information is inserted into the docString for the R method.
     if(is(xMethod, "function")) {
         ## possibly a ProxyFunction
-        inferDoc(xMethod, language)
+        inferDoc(methodName, xMethod, language)
     }
     else {
         if(is.null(xMethod))
@@ -264,19 +263,15 @@ inferX <- function(what, xMethod, language) {
 }
 
 ## Insert a server documentation string into a method definition
-inferDoc <- function(fun, language) {
+inferDoc <- function(methodName, fun, language) {
     if(is(fun, "ProxyFunction")) {
         doc <- fun@serverDoc
-        if(length(doc))
-            doc[[1]] <- gettextf("%s Documentation: %s", language, doc[[1]])
-        else
-            doc <- gettextf("%s Method", language)
+        if(!length(doc))
+            doc <- ""
         args <- fun@serverArgs
-        if(length(args)) {
-            args[[1]] <- gettextf("%s Arguments: %s", language, args[[1]])
-            doc <- c(doc, paste(args, collapse = ", "))
-        }
-        doc <- paste(doc, collapse = "\n")
+        usage <- gettextf("%s Method: %s(%s)", language, methodName,
+                          paste(args, collapse = ", "))
+        doc[[1]] <- paste(usage, doc[[1]], sep ="\n")
         ll <- as.list(body(fun))
         if(identical(ll[[1]], as.name("{")))
             ll <- base::append(ll, doc, 1)
