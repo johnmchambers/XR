@@ -265,9 +265,18 @@ inferX <- function(what, xMethod, language) {
 
 ## Insert a server documentation string into a method definition
 inferDoc <- function(fun, language) {
-    if(is(fun, "ProxyFunction") && length(fun@serverDoc)) {
+    if(is(fun, "ProxyFunction")) {
         doc <- fun@serverDoc
-        doc[[1]] <- gettextf("%s Documentation: %s", language, doc[[1]])
+        if(length(doc))
+            doc[[1]] <- gettextf("%s Documentation: %s", language, doc[[1]])
+        else
+            doc <- gettextf("%s Method", language)
+        args <- fun@serverArgs
+        if(length(args)) {
+            args[[1]] <- gettextf("%s Arguments: %s", language, args[[1]])
+            doc <- c(doc, paste(args, collapse = ", "))
+        }
+        doc <- paste(doc, collapse = "\n")
         ll <- as.list(body(fun))
         if(identical(ll[[1]], as.name("{")))
             ll <- base::append(ll, doc, 1)
@@ -618,12 +627,13 @@ setGeneric("makeProxyDoc",
            function(object, docText, language = "Proxy", ...) {
                doc <- ProxyDoc(...)
                docText <- unlist(strsplit(docText, "\n"))
-               doc@title <- if(length(docText)) {
-                   title <- docText[1]
+               if(length(docText)) {
+                   doc@title <- docText[1]
                    docText <- docText[-1]
-                   title
-               } else ""
-               while(length(docText)  && !nzchar(docText[[1]]))
+               }
+               else
+                   doc@title <- ""
+               while(length(docText)  && !nzchar(docText[[1]])) # throw leading empty lines
                    docText <- docText[-1]
                doc@description <- c(doc@description, docText)
                doc
@@ -634,19 +644,20 @@ setMethod("makeProxyDoc", "ProxyFunction",
               if(length(object@serverDoc))
                   docText <- c(docText, "", gettextf("[%s Documentation]", language),object@serverDoc)
               doc <- callNextMethod()
-              doc@usage <- gettextf("%s(%s) [%s]",object@name, paste(object@serverArgs, collapse = ", "),
-                                        language)
+              doc@usage <- gettextf("%s(%s)",object@name, paste(object@serverArgs, collapse = ", "))
               doc
           })
 
 createRoxygen <- function(object, con, docText, setText = character(), evaluator = getInterface()) {
     ## create a doc object
-    doc <- makeProxyDoc(object, docText, evaluator$languageName)
+    language <- evaluator$languageName
+    doc <- makeProxyDoc(object, docText, language)
     rox <- c(doc@title,"", doc@description)
     if(length(doc@details))
         rox <- c(rox, "", doc@details)
     if(length(doc@usage))
-        rox <- c(rox, "@section Proxy Function:", doc@usage)
+        rox <- c(rox, gettextf("@section %s Functions:", language),
+                 doc@usage)
     if(length(doc@sections)) {
         sections <- doc@sections
         what <- names(sections)
