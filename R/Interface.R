@@ -512,6 +512,7 @@ Interface$methods(
                       initialize = function(...) {
                       'initializes the evaluator in a language-independent sense.  Should not be called
 until there actually is an evaluator, so that path and import operations can take place'
+                      usingMethods(finalize, ServerQuit) # in case of garbage collection
                       initFields(...) # allow overides to precede
                       if(!length(languageName)) # but should be set by a subclass method first
                           languageName <<- "<UnspecifiedLanguage>"
