@@ -510,12 +510,14 @@ fixHelpTopic <- function(topic) {
 
 Interface$methods(
                       initialize = function(...) {
-                      'initializes the evaluator in a language-independent sense.  Should not be called
-until there actually is an evaluator, so that path and import operations can take place'
-                      usingMethods(finalize, ServerQuit) # in case of garbage collection
+                      'initializes the evaluator in a language-independent sense.'
                       initFields(...) # allow overides to precede
-                      if(!length(languageName)) # but should be set by a subclass method first
+                      usingMethods(finalize, ServerQuit) # in case of garbage collection
+                      saveInTable <- TRUE
+                      if(!length(languageName)) {# should be set by a subclass method first
                           languageName <<- "<UnspecifiedLanguage>"
+                          saveInTable <- FALSE
+                      }
                       if(!length(proxyCount))
                           proxyCount <<- 0L
                       if(!(length(evaluatorId) == 1 && nzchar(evaluatorId)))
@@ -524,11 +526,9 @@ until there actually is an evaluator, so that path and import operations can tak
                           propertyFormat <<- "%s.%s"
                       if(is(simplify, "uninitializedField"))
                           simplify <<- FALSE
-                      ## initialize the system path, imports and potentially other actions
-                      className <- class(.self)
-                      actions <- evaluatorActions[[className]]
-                      for(el in actions)
-                          evaluatorAction(el, .self)
+                      ## get an evaluator number, save the object in table
+                      if(saveInTable) # but not for dummy objects
+                          evaluatorNumber(.self, TRUE)
                       ## path <- languagePaths[[className]]
                       ## for(dir in path) # requires all elements to be of class pathEl
                       ##     AddToPath(dir, dir@package, dir@pos)
@@ -536,6 +536,15 @@ until there actually is an evaluator, so that path and import operations can tak
                       ## for(expr in imports)
                       ##     eval(expr, envir = .self)
                   },
+    startupActions = function() {
+        'Perform the evaluator actions specified for this object, typically additions to search path and imports'
+        ## initialize the system path, imports and potentially other actions
+        className <- class(.self)
+        actions <- evaluatorActions[[className]]
+        for(el in actions)
+            evaluatorAction(el, .self)
+    },
+
                   finalize = function(...) {
                       'method called when the object is garbage collected.  A call to the $Quit() method
 also calls this method (recalling it later then does nothing).  In case some server action
