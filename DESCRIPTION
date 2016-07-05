@@ -10,9 +10,7 @@ Description: Support for interfaces from R to other languages,
     methods for communication. Will be used through a specific language interface
     package. Described in the book "Extending R".
 License: GPL (>= 2)
-Imports:
-    methods,
-    jsonlite
+Imports: methods, utils, jsonlite
 NeedsCompilation: no
-Packaged: 2015-09-10 13:16:26 UTC; jmc
+Packaged: 2016-06-16 17:07:48 UTC; jmc
 RoxygenNote: 5.0.1

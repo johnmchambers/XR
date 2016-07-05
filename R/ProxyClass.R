@@ -112,6 +112,10 @@ ProxyClassObject$methods(
 #' @param objName When using the \code{save=} argument to write R code, use this name in the
 #' assignment expression for the generator object.  By default, the name of the class.
 #' @param ... extra arguments to pass on to \code{setRefClass()}.
+#' @param docText metadata information supplied by the interface for a particular
+#' server language.
+#' @param docFunction the function to use to create documentation.  Currently only
+#' the default, \code{createRoxygen()}, is implemented.
 #' @template reference
 setProxyClass <- function(Class, module = "",
                           fields = character(), methods = NULL,
@@ -500,29 +504,30 @@ setMethod("asServerObject", "ProxyClassObject",
     }
 )
 
-#' Dump Explicit Definition of Proxy Classes and Functions
-#'
-#' To avoid getting server language class and function information at load time,
-#' which may not work with narrow-minded
-#' package repositories such as CRAN, these functions generate R code to define the proxy classes
-#' and functions explicitly.
-#' Normally not called directly.
-#'
-#' The functions will usually be called from  \code{\link{setProxyClass}}
-#' or an initializing method for a subclass of \code{\link{ProxyFunction}},
-#' with an argument for the file or open connection to which the output will be sent.
-#'
-#' If called with the working directory set to the package source directory,
-#' the files go into the application package's R source, defining the same
-#' proxy functions or classes explicitly.
-#' @param save where to write the generated R code.  If simply \code{TRUE}, a name is constructed from the function or  class names.
-#' May also be a connection.  If the file or connection is not open, it is opened and then
-#' closed on exit.  Allowed to be an environment (not currently used).
-#' @param ProxyClass the server language class name.
-#' @param docText,docFunction  \code{docText} optional
-#' documentation text for roxygen-style comments to be inserted when the definition is
-#' being saved; \code{docFunction}, the function to generate the documentation.  By default uses roxygen-style comments.
-#' @template reference
+## un-roxygenized, no longer exported
+##' Dump Explicit Definition of Proxy Classes and Functions
+##'
+##' To avoid getting server language class and function information at load time,
+##' which may not work with narrow-minded
+##' package repositories such as CRAN, these functions generate R code to define the proxy classes
+##' and functions explicitly.
+##' Normally not called directly.
+##'
+##' The functions will usually be called from  \code{\link{setProxyClass}}
+##' or an initializing method for a subclass of \code{\link{ProxyFunction}},
+##' with an argument for the file or open connection to which the output will be sent.
+##'
+##' If called with the working directory set to the package source directory,
+##' the files go into the application package's R source, defining the same
+##' proxy functions or classes explicitly.
+##' @param save where to write the generated R code.  If simply \code{TRUE}, a name is constructed from the function or  class names.
+##' May also be a connection.  If the file or connection is not open, it is opened and then
+##' closed on exit.  Allowed to be an environment (not currently used).
+##' @param ProxyClass the server language class name.
+##' @param docText,docFunction  \code{docText} optional
+##' documentation text for roxygen-style comments to be inserted when the definition is
+##' being saved; \code{docFunction}, the function to generate the documentation.  By default uses roxygen-style comments.
+##' @template reference
 dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, docText = NULL, docFunction = createRoxygen) {
     if(identical(save, TRUE))
         save <- .dumpFileName(ProxyClass)
@@ -682,10 +687,10 @@ setMethod("writeFakeObject", "refClassRepresentation",
           })
 
 
-#' @rdname dumpProxyClass
-#'
-#' @param object the proxy object, constructed by the initialization method for one of the proxy
-#' function classes, such as \code{"PythonFunction"}.
+##' @rdname dumpProxyClass
+##'
+##' @param object the proxy object, constructed by the initialization method for one of the proxy
+##' function classes, such as \code{"PythonFunction"}.
 dumpProxyFunction <-
 function(file, object, objName = object@name, docText, writeDoc = createRoxygen) {
     if(identical(file, TRUE))
@@ -712,31 +717,11 @@ function(file, object, objName = object@name, docText, writeDoc = createRoxygen)
 }
 
 ## proxyName defined earlier (in Interface.R)
+#' @describeIn proxyName this class has a proxy object as a field.
 setMethod("proxyName", "ProxyClassObject",
           function(x)
               callGeneric(x$.proxyObject))
 
 
-## temporary definition of two functions until the methods package has exported versions
-classDefIsLocked <- function(Class) {
-    methods:::.classDefIsLocked(Class)
-}
 
-classGeneratorFunction <- function (classDef, env = topenv(parent.frame()))
-{
-    if (is(classDef, "classRepresentation")) {
-    }
-    else if (is(classDef, "character")) {
-        if (is.null(packageSlot(classDef)))
-            classDef <- getClass(classDef, where = env)
-        else classDef <- getClass(classDef)
-    }
-    else stop("argument 'classDef' must be a class definition or the name of a class")
-    fun <- function(...) NULL
-    body(fun) <- substitute(new(CLASS, ...), list(CLASS = classDef@className))
-    environment(fun) <- env
-    fun <- as(fun, "classGeneratorFunction")
-    fun@className <- classDef@className
-    fun@package <- classDef@package
-    fun
-}
+

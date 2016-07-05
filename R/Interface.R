@@ -1697,12 +1697,7 @@ quoteList <- function(what, more) {
         paste(what, nameQuote(more), sep = " = ", collapse = ", ")
 }
 
-## utility to return proxy name
-proxyName <- function(x)
     stop(gettextf("No proxy name contained in objects of class %s",
-                  dQuote(class(x))))
-
-setGeneric("proxyName")
 
 setMethod("proxyName", "AssignedProxy",
           function(x)
@@ -1739,7 +1734,6 @@ from_Server <- setClass("from_Server",
                         slots = c(serverClass = "character", module = "character",
                                   language = "character", fields = "serverFields", data = "ANY"),
                         prototype = list(serverClass = "", module = "", language = "",
-                                         fields = NULL, data = noServerData))
 setMethod("initialize", "from_Server",
           function(.Object, ..., referenceClass = TRUE) {
               obj <- callNextMethod(.Object, ...)
@@ -1748,7 +1742,6 @@ setMethod("initialize", "from_Server",
                   obj@fields <- .checkFields(fields)
               obj
           })
-
 
 setMethod("$", "from_Server",
           function(x, name) {
