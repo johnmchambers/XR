@@ -146,13 +146,24 @@ setMethod("initialize","pathEl",
               callNextMethod()
           })
 
+#' Carry Out an Evaluator Initialization Action
+#'
+#' This function is called from the Startup() method of an evalautor and is not
+#' useful to be called directly.  It is exported to make it visible from within
+#' a subclass of "Interface".
+#'
+#' @param action the action from the table.  Must be an expression or some special
+#' class, typically a path element to add to the server path.
+#' @param ev the evaluator.
 setGeneric("evaluatorAction", function(action, ev)
     stop("No default method for evaluatorAction(), must be a language object or special class"))
 
+#' @describeIn evaluatorAction a language object, just evaluate it.
 setMethod("evaluatorAction", "language",
           function(action, ev)
               base::eval(action, ev))
 
+#' @describeIn evaluatorAction a "pathEl" object to add to the server search path.
 setMethod("evaluatorAction", "pathEl",
           function(action, ev)
               ev$AddToPath(action, action@package, action@pos))
@@ -177,7 +188,7 @@ setMethod("evaluatorAction", "pathEl",
 #' package should execute a call to add to the search path before any calls to import modules form
 #' the corresponding directory.
 #'
-#'  @param Class the class of the server-specific evalutor.
+#' @param Class the class of the server-specific evalutor.
 #' @param onLoad,where used to set up a load action; should be omitted if called from a package source
 #' @template reference
 #' @name evaluatorActions
@@ -187,9 +198,9 @@ NULL
 #'
 #' Add the directory to the search path of all evaluators of this class.
 #'
-#'  @param directory the directory to add to the search path table.
-#'  @param package the name of the server-specific interface package.
-#'  @param pos where in the list of directories to insert this one.  Defaults to the end.
+#' @param directory the directory to add to the search path table.
+#' @param package the name of the server-specific interface package.
+#' @param pos where in the list of directories to insert this one.  Defaults to the end.
 serverAddToPath <- function(Class, directory, package = utils::packageName(topenv(parent.frame())),
                             pos = NA, onLoad = NA, where = topenv(parent.frame())) {
     ## note:  directory is not allowed to be missing.  The server language specializations will
@@ -1697,8 +1708,20 @@ quoteList <- function(what, more) {
         paste(what, nameQuote(more), sep = " = ", collapse = ", ")
 }
 
+#' Return the Server Language Name Corresponding to a Proxy Object
+#'
+#' Interface evaluators pass constructed names to the server language evaluator, arranged
+#' to be unique within and between evaluators.  This function returns the name when given a
+#' proxy object.
+#'
+#' @param x an object returned from some computation in the server  as a proxy
+#' for that server object.  May be from a proxy class, but doesn't need to be.
+setGeneric("proxyName", function(x)
     stop(gettextf("No proxy name contained in objects of class %s",
+                  dQuote(class(x)))))
 
+#' @describeIn proxyName for this class, the name is the object (which extends class
+#' "character")
 setMethod("proxyName", "AssignedProxy",
           function(x)
               as(x, "character"))
@@ -1730,10 +1753,26 @@ noServerData <- new.env() # a special value for the data slot of from_Server
         stop("Field names must be unique and non-empty: %s", .badNames(ns))
 }
 
+#' A Class to Describe General Server Objects
+#'
+#' Classes that inherit from this class are used to convert to R a server language
+#' object that is composed of named fields.  The corresponding R object will have
+#' conversions for the fields that can be accessed with the "$" operator.
+#'
+#' @slot serverClass the name of the server language class
+#' @slot module the name of the server language module
+#' @slot language the name of the server language
+#' @slot fields the names of the server language fields
+#' @slot data the converted data for the server fields
 from_Server <- setClass("from_Server",
                         slots = c(serverClass = "character", module = "character",
                                   language = "character", fields = "serverFields", data = "ANY"),
                         prototype = list(serverClass = "", module = "", language = "",
+                        fields = NULL, data = noServerData))
+#' @describeIn from_Server performs some checks on the fields
+#'
+#' @param .Object,referenceClass arguments supplied automatically.
+#' @param ... possible slots for subclasses
 setMethod("initialize", "from_Server",
           function(.Object, ..., referenceClass = TRUE) {
               obj <- callNextMethod(.Object, ...)
@@ -1743,6 +1782,10 @@ setMethod("initialize", "from_Server",
               obj
           })
 
+#' @describeIn from_Server extract a field.  The name must match a field in the
+#' data part.
+#'
+#' @param x,name the object and the field name
 setMethod("$", "from_Server",
           function(x, name) {
               i <- match(name, names(x@data))
@@ -1752,6 +1795,11 @@ setMethod("$", "from_Server",
               x@data[[i]]
           })
 
+#' @describeIn from_Server automatic printing, currently just a list of field names.
+#'
+#' @param object an object from some server class, converted by the \code{$Get()} method
+#' or an equivalent computation, such as supplying \code{.get = TRUE} to a proxy function
+#' call.
 setMethod("show", "from_Server",
           function(object) {
               cat(gettextf("R conversion of %s object of class %s\n\nConverted fields:\n",
@@ -1768,7 +1816,7 @@ setMethod("show", "from_Server",
 #' have convertible attributes.  Fields of a convertible object may be unconvertible without
 #' preventing conversion of the rest of the parent object.
 #' @slot serverClass,serverModule The names of the class and module in the server language.
-#' @slot languag The language name (for communicating with users), not the interface class name.
+#' @slot language The language name (for communicating with users), not the interface class name.
 #' @slot attributes A list with names that should be interpreted as properties of the object.
 #' @template reference
 setClass("Unconvertible",
