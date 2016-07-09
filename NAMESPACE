@@ -35,8 +35,9 @@ exportClass(from_Server)
 exportClass(Unconvertible)
 
 ## niceties for CHECK
-  importFrom("methods", "allNames", "as", "callGeneric",
-             "callNextMethod", "evalOnLoad", "extends", "getClassDef",
-             "is", "isVirtualClass", "new", "packageSlot",
-             "packageSlot<-", "setRefClass", "slot", "slot<-")
+  ## importFrom("methods", "allNames", "as", "callGeneric",
+  ##            "callNextMethod", "evalOnLoad", "extends", "getClass", "getClassDef",
+  ##            "is", "isVirtualClass", "new", "packageSlot",
+##            "packageSlot<-", "setRefClass", "slot", "slot<-")
+import(methods)
   importFrom("utils", "packageName")
