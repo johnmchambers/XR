@@ -12,5 +12,5 @@ Description: Support for interfaces from R to other languages,
 License: GPL (>= 2)
 Imports: methods, utils, jsonlite
 NeedsCompilation: no
-Packaged: 2016-06-16 17:07:48 UTC; jmc
+Packaged: 2016-07-05 21:56:17 UTC; jmc
 RoxygenNote: 5.0.1

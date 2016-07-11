@@ -608,10 +608,13 @@ Note that `name` must be a character string, not an evaluation in the server.'
         Eval(expr, value, .returnValue = FALSE)
         invisible(object)
     },
-    ProxyName = function(new = TRUE) {
-        'A key for the next proxy object.  In the default strategy, this is a string
+    ProxyName = function(x, new = TRUE) {
+'Called without arguments, returns a key for the next proxy object.  In the default strategy, this is a string
 "R_i_j" where i is the sequence code for the evaluator and j is the proxy count,
-incremented if `new` is TRUE'
+incremented if `new` is TRUE.  If `x` is supplied as an existing proxy object,
+returns the key for that object.'
+        if(!missing(x))
+            return(XR::proxyName(x))
         if(new)
             proxyCount <<- proxyCount + 1L
         seq <- evaluatorNumber(.self)
@@ -668,7 +671,11 @@ If `serverClass` is supplied, there should be a corresponding asServerObject() m
     Shell = function(endCode = "quit", prompt =  ">>>: ", cont = "+++: ") {
         'Starts an interactive shell.  Each line of input must be a complete expression
 or statement in the server language. To continue over multiple lines, append an unescaped
-backslash to all but the last line.'
+backslash to all but the last line.
+
+A line typed to the shell starting with "$" is an escape back to the evaluator, and
+can be used to call evaluator methods, e.g., "ProxyName(x)".  See the example in
+the documentation for class "Interface" in XR'
         pp <- prompt
         repeat {
             expr <- character()
@@ -689,10 +696,29 @@ backslash to all but the last line.'
                 expr <- paste(expr, collapse = "\n")
             if(identical(expr, endCode))
                 break
-            tryCatch(ServerEval(expr), error = function(e) {
-                message(gettextf("%s error: %s", languageName, e$message))
-                })
+            if(grepl("^[$]",expr))
+                MethodEval(expr, TRUE, TRUE)
+            else
+                tryCatch(ServerEval(expr), error = function(e) {
+                    message(gettextf("%s error: %s", languageName, e$message))
+                    })
         }
+    },
+    MethodEval = function(string, catch = FALSE, print = FALSE) {
+        'The string is a method call for the evaluator, or the name of a field.
+Evaluated as the expression ev$string.'
+        if(!grepl("^[$]",string))
+            string <- paste0("$",string)
+        expr <- parse(text = paste0(".self", string))
+        value <- (if(catch)
+               tryCatch(eval(expr), error=function(e)
+                   {
+                       message(gettextf("error in R method: %s", e$message))
+                   })
+        else
+            eval(expr))
+        if(print) methods::show(value)
+        value
     },
     New = function(serverClass, serverModule = "", ...) {
         'Generate a new object from the specified server class.  The corresponding generator function
