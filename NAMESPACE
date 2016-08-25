@@ -31,7 +31,7 @@ export(proxyName)
 
 export(fixHelpTopic)
 export(from_Server)
-exportClass(from_Server)
+exportClass(from_Server, serverFields, ProxyObject)
 exportClass(Unconvertible)
 
 ## niceties for CHECK
