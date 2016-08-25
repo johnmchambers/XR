@@ -504,30 +504,6 @@ setMethod("asServerObject", "ProxyClassObject",
     }
 )
 
-## un-roxygenized, no longer exported
-##' Dump Explicit Definition of Proxy Classes and Functions
-##'
-##' To avoid getting server language class and function information at load time,
-##' which may not work with narrow-minded
-##' package repositories such as CRAN, these functions generate R code to define the proxy classes
-##' and functions explicitly.
-##' Normally not called directly.
-##'
-##' The functions will usually be called from  \code{\link{setProxyClass}}
-##' or an initializing method for a subclass of \code{\link{ProxyFunction}},
-##' with an argument for the file or open connection to which the output will be sent.
-##'
-##' If called with the working directory set to the package source directory,
-##' the files go into the application package's R source, defining the same
-##' proxy functions or classes explicitly.
-##' @param save where to write the generated R code.  If simply \code{TRUE}, a name is constructed from the function or  class names.
-##' May also be a connection.  If the file or connection is not open, it is opened and then
-##' closed on exit.  Allowed to be an environment (not currently used).
-##' @param ProxyClass the server language class name.
-##' @param docText,docFunction  \code{docText} optional
-##' documentation text for roxygen-style comments to be inserted when the definition is
-##' being saved; \code{docFunction}, the function to generate the documentation.  By default uses roxygen-style comments.
-##' @template reference
 dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, docText = NULL, docFunction = createRoxygen) {
     if(identical(save, TRUE))
         save <- .dumpFileName(ProxyClass)
@@ -687,10 +663,6 @@ setMethod("writeFakeObject", "refClassRepresentation",
           })
 
 
-##' @rdname dumpProxyClass
-##'
-##' @param object the proxy object, constructed by the initialization method for one of the proxy
-##' function classes, such as \code{"PythonFunction"}.
 dumpProxyFunction <-
 function(file, object, objName = object@name, docText, writeDoc = createRoxygen) {
     if(identical(file, TRUE))

@@ -1,3 +1,8 @@
+#' Class Union to Represent Proxy Objects
+#'
+#' A virtual class to include all classes that can represent proxy objects
+#' in the server language.  May be extended by the interface for a particular language.
+#' @name ProxyObject-class
 setClassUnion("ProxyObject", "name")
 
 #' Reference class for all interface evaluators
@@ -1753,6 +1758,10 @@ setMethod("proxyName", "AssignedProxy",
               as(x, "character"))
 ## and a method for ProxyClassObject in ProxyClass.R
 
+#' Class Union for Describing Server Language Fields
+#'
+#' May be extended by the interface for a particular language.
+#' @name serverFields-class
 setClassUnion("serverFields", c("environment", "list", "namedList", "NULL"))
 
 noServerData <- new.env() # a special value for the data slot of from_Server
