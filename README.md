@@ -15,7 +15,7 @@ The structure consists of a class of evaluator objects, generic
 functions to customize communication with the server language and a
 set of tools to manage evaluators in the session.
 
-The interface structure is described in the forthcoming book
+The interface structure is described in the book
 *Extending R* (John M. Chambers, 2016, Chapman & Hall).
 A pdf version of the XR chapter from the book is included with the
 documentation of this package.  To open the pdf file from R:
