@@ -15,10 +15,14 @@ The structure consists of a class of evaluator objects, generic
 functions to customize communication with the server language and a
 set of tools to manage evaluators in the session.
 
-The interface structure is described in the book
+The interface structure is described in the forthcoming book
 *Extending R* (John M. Chambers, 2016, Chapman & Hall).
 A pdf version of the XR chapter from the book is included with the
-documentation of this package.
+documentation of this package.  To open the pdf file from R:
 
-*CRAN Version*: A version of this package (currently version 0.7.0) is
+  `RShowDoc("Chapter_XR", package = "XR")`
+
+
+*CRAN Version*: A version of this package (currently version 0.7) is
  available from the CRAN repository.
+
