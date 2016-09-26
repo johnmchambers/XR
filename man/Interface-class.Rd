@@ -181,10 +181,13 @@ as a single string, newlines inserted between lines of the file.}
 \item{\code{Unserialize(file, all = FALSE)}}{Unserialize the objects previously written to `file` by $Serialize().
 Returns a list of proxy objects (always a list even if only one object found).}
 }}
+\seealso{ The methods package \link[=methods-package]{overview} and
+  pointers from there.
+}
 \references{
 Chambers, John M. (2016)
 \emph{Extending R},
 Chapman & Hall/CRC.
-( Chapter 12, discussing this package, is included in the package: \url{../doc/Chapter_XR.pdf}.)
+( Chapter 13, discussing this package, is included in the package: \url{../doc/Chapter_XR.pdf}.)
 }
 

@@ -24,6 +24,6 @@ likely only of information value otherwise, to tell you how to code an object in
 Chambers, John M. (2016)
 \emph{Extending R},
 Chapman & Hall/CRC.
-( Chapter 12, discussing this package, is included in the package: \url{../doc/Chapter_XR.pdf}.)
+( Chapter 13, discussing this package, is included in the package: \url{../doc/Chapter_XR.pdf}.)
 }
 

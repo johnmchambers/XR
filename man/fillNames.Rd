@@ -18,6 +18,6 @@ A utility to fill in blank names in list elements to make it valid for a diction
 Chambers, John M. (2016)
 \emph{Extending R},
 Chapman & Hall/CRC.
-( Chapter 12, discussing this package, is included in the package: \url{../doc/Chapter_XR.pdf}.)
+( Chapter 13, discussing this package, is included in the package: \url{../doc/Chapter_XR.pdf}.)
 }
 
