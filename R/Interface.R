@@ -808,19 +808,14 @@ asServerObject() or objectAsJSON().'
         'Use the server language serialization to serialize `object` to the specified `file`.
 According to `append` either append to the file (default) or overwrite.
 The supplied object should be a proxy for a server language object.'
-        if(!is(object, "AssignedProxy"))
-            stop(gettextf(
-                "Only proxies for server language objects can be serialized; got class %s",
-                nameQuote(class(object))))
         if(!append) { # truncate the file
             con <- base::file(file, "w")
             close(con)
         }
-        ServerSerialize(as.character(object), file)
+        ServerSerialize(ProxyName(object), file)
     },
     Unserialize = function(file, all = FALSE) {
-        'Unserialize the objects previously written to `file` by $Serialize().
-Returns a list of proxy objects (always a list even if only one object found).'
+        'Unserialize a list of objects previously written to `file` by $Serialize().\nReturns a list of proxy objects. If all=FALSE, returns a single object if exactly one object found.'
         ServerUnserialize(file, all) # will be a matching method to ServerSerialize()
     },
     AddToPath = function(directory = base::tolower(languageName),
