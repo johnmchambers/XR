@@ -114,8 +114,6 @@ ProxyClassObject$methods(
 #' @param ... extra arguments to pass on to \code{setRefClass()}.
 #' @param docText metadata information supplied by the interface for a particular
 #' server language.
-#' @param docFunction the function to use to create documentation.  Currently only
-#' the default, \code{createRoxygen()}, is implemented.
 #' @template reference
 setProxyClass <- function(Class, module = "",
                           fields = character(), methods = NULL,
@@ -129,8 +127,7 @@ setProxyClass <- function(Class, module = "",
                           ...,
                           save = FALSE,
                           objName = Class,
-                          docText = NULL,
-                          docFunction = createRoxygen) {
+                          docText = NULL) {
     ## in the case everything is specified (usually after a call with save=file)
     ## construct the reference class with no server side computation
     if(!(is.null(fields) || is.null(methods) || missing(language))) {
@@ -213,7 +210,7 @@ setProxyClass <- function(Class, module = "",
             generator
         }
         else {
-            dumpProxyClass( save, Class_R, contains, fields, methods, name = objName, docText = docText, docFunction = docFunction)
+            dumpProxyClass( save, Class_R, contains, fields, methods, name = objName, docText = docText)
         }
     }
 }
@@ -450,7 +447,7 @@ ProxyFunction <- setClass("ProxyFunction",
                           contains = c("function", "ProxyObject"))
 
 setMethod("initialize", "ProxyFunction",
-          function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA, .Data = NULL, save = FALSE, objName = name, docText = NULL, docFunction = createRoxygen) {
+          function(.Object, name = "", module = "", prototype = function(...) NULL, evaluator = getInterface(), ..., .get = NA, .Data = NULL, save = FALSE, objName = name, docText = NULL) {
               ## .Data is set either directly from code in a setup step
               ## or at the end of an initialize() method specialized to a server language
               if(is.null(.Data)) {
@@ -480,7 +477,7 @@ setMethod("initialize", "ProxyFunction",
                   .Object@.Data <- .Data
               }
               if(!identical(save, FALSE))
-                  evaluator$SaveProxyFunction(save, .Object, objName, docText, docFunction)
+                  evaluator$SaveProxyFunction(save, .Object, objName, docText)
               callNextMethod(.Object, ...)
           })
 
@@ -504,7 +501,7 @@ setMethod("asServerObject", "ProxyClassObject",
     }
 )
 
-dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, docText = NULL, docFunction = createRoxygen) {
+dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, docText = NULL) {
     if(identical(save, TRUE))
         save <- .dumpFileName(ProxyClass)
     if(is(save, "connection") && isOpen(save))
@@ -529,7 +526,7 @@ dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, do
         else
             classExpr <- gettextf("%s <- setRefClass(%s, contains = c(%s))", ProxyClass, dQuote(ProxyClass),
                               paste(dQuote(c(contains, "ProxyClassObject")), collapse = ", "))
-        docFunction(new("ProxyClass"), con, docText, classExpr)
+        createRoxygen(new("ProxyClass"), con, docText, classExpr)
     }
     text <- gettextf("%s <- XR::setProxyClass(%s, module = %s,", ProxyClass, nameQuote(pc$ServerClass), nameQuote(pc$ServerModule))
     text <- c(text, gettextf("    evaluatorClass = %s, language = %s, proxyObjectClass = %s,",
@@ -664,7 +661,7 @@ setMethod("writeFakeObject", "refClassRepresentation",
 
 
 dumpProxyFunction <-
-function(file, object, objName = object@name, docText, writeDoc = createRoxygen) {
+function(file, object, objName = object@name, docText) {
     if(identical(file, TRUE))
         file  <- .dumpFileName(object@name, "Function")
     if(is(file, "connection") && isOpen(file))
@@ -681,7 +678,7 @@ function(file, object, objName = object@name, docText, writeDoc = createRoxygen)
         if(is.null(.get)) .get <- "NA" else .get <- deparse(.get)
         settext <- c(gettextf("%s <- function(..., .ev = XR::getInterface(), .get = %s)",
                               objName, .get), "    NULL", "")
-        writeDoc(object, con, docText, settext)
+        createRoxygen(object, con, docText, settext)
     }
     cat(gettextf("%s <- ", objName), file = con)
     dput(object, con)

@@ -15,6 +15,7 @@ export(getInterface)
 export(serverAddToPath, serverImport, serverTask)
 export(evaluatorAction) # called from the startupActions() evaluator method
 export(evaluatorActions)
+export(dumpProxyFunction) # called from $SaveProxyFunction
 
 export(setProxyClass)
 
