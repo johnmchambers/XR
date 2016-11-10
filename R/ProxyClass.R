@@ -73,7 +73,7 @@ setMethod("objectAsJSON", "ProxyClassObject",
 ProxyClassObject$methods(
     show = function() {
         cat(gettextf("R Object of class %s, for ",
-                     dQuote(class(.self))))
+                     nameQuote(class(.self))))
         methods::show(.proxyObject)
     })
 
@@ -171,17 +171,23 @@ setProxyClass <- function(Class, module = "",
             function(..., evaluator,
                      .serverObject) {
                 if(missing(evaluator))
-                    evaluator <- XR::getInterface(ICLASS)
+                    
                 if(missing(.serverObject)) {
                     ## (can't use default in arg list, substitute doesn't find it)
                     IMPORT
+                    evaluator <- XR::getInterface(ICLASS)
                     .serverObject <- evaluator$New(SERVERCLASS, SERVERMODULE, ...)
                 }
-                if(is(.serverObject, "ProxyClassObject"))
+                if(is(.serverObject, "ProxyClassObject")) {
                     proxy <- .serverObject$.proxyObject
-                else
+                    evaluator <- .serverObject$.ev
+                }
+                else {
                     proxy <- .serverObject ## had better be an AssignedProxy
+                    evaluator <- .serverObject@evaluator
+                }
                 .proxyObject <<- proxy
+                .proxyClass <<- XR::ProxyClass(ServerClass = SERVERCLASS, ServerModule = SERVERMODULE, language = LANGUAGE, evaluatorClass = ICLASS)
                 .ev <<- evaluator
             }, list(LANGUAGE = language, SERVERCLASS = ServerClass,
                     ICLASS = evaluatorClass, SERVERMODULE = module,
@@ -254,7 +260,7 @@ inferX <- function(methodName, xMethod, language) {
         }
         else
             stop(gettextf("Expected NULL, an arg list or the method as a function: got class %s",
-                          dQuote(class(xMethod))))
+                          nameQuote(class(xMethod))))
         eval(substitute(function(..., .get = NA) {
             DOCSTRING
             .ev$MethodCall(.proxyObject, WHAT, ..., .get = .get)
@@ -398,7 +404,7 @@ resolveProxyMethods <- function(.Object, xmethods, methods) {
         unames <- names(methods)
         if(any(is.na(match(unames, xnames))))
             warning(gettextf("Methods to be exported (%s) were not found in reflectance",
-                             paste(dQuote(unames[is.na(match(unames, xnames))]), collapse = ", ")))
+                             paste(nameQuote(unames[is.na(match(unames, xnames))]), collapse = ", ")))
         xpt <- xnames %in% unames
         xmethods <- xmethods[xpt]
         if(length(xmethods) == 0)
@@ -418,7 +424,7 @@ resolveProxyFields <- function(.Object, xfields, fields) {
         unames <- names(fields)
         if(any(is.na(match(unames, xnames))))
             warning(gettextf("Fields to be exported (%s) were not found in reflectance",
-                             paste(dQuote(unames[is.na(match(unames, xnames))]), collapse = ", ")))
+                             paste(nameQuote(unames[is.na(match(unames, xnames))]), collapse = ", ")))
         xpt <- xnames %in% unames
         xfields <- xfields[xpt]
     }
@@ -460,7 +466,7 @@ setMethod("initialize", "ProxyFunction",
                   else
                       stop(gettextf(
                           "The evaluator= argument should be an evaluator or its class; got %s",
-                          dQuote(class(evaluator))))
+                          nameQuote(class(evaluator))))
                   deflt <- substitute(XR::getInterface(WHAT), list(WHAT = evaluator))
                   formals(prototype) <- c(args, list(.evaluator = deflt, .get = .get))
                   text <- gettextf('.evaluator$Call(%s,%s, .get = .get)', nameQuote(name), anames)
@@ -520,12 +526,12 @@ dumpProxyClass <- function(save, ProxyClass, contains, fields, methods, name, do
         ## Bug in methods::setRefClass: can't include 0 length fields arg. (R3.3.0)
         ## Until fixed, following workaround
         if(length(fields))
-            classExpr <- gettextf("%s <- setRefClass(%s, contains = c(%s), fields = c(%s))", ProxyClass, dQuote(ProxyClass),
-                              paste(dQuote(c(contains, "ProxyClassObject")), collapse = ", "),
-                                  paste(dQuote(fields), collapse = ", "))
+            classExpr <- gettextf("%s <- setRefClass(%s, contains = c(%s), fields = c(%s))", ProxyClass, nameQuote(ProxyClass),
+                              paste(nameQuote(c(contains, "ProxyClassObject")), collapse = ", "),
+                                  paste(nameQuote(fields), collapse = ", "))
         else
-            classExpr <- gettextf("%s <- setRefClass(%s, contains = c(%s))", ProxyClass, dQuote(ProxyClass),
-                              paste(dQuote(c(contains, "ProxyClassObject")), collapse = ", "))
+            classExpr <- gettextf("%s <- setRefClass(%s, contains = c(%s))", ProxyClass, nameQuote(ProxyClass),
+                              paste(nameQuote(c(contains, "ProxyClassObject")), collapse = ", "))
         createRoxygen(new("ProxyClass"), con, docText, classExpr)
     }
     text <- gettextf("%s <- XR::setProxyClass(%s, module = %s,", ProxyClass, nameQuote(pc$ServerClass), nameQuote(pc$ServerModule))
@@ -655,7 +661,7 @@ setMethod("writeFakeObject", "refClassRepresentation",
               name <- object@className
               ## todo: get the proxy fields from object@fieldClasses
               writeLines(c(gettextf("%s <- setRefClass(%s, fields = %s)",
-                                    name, dQuote(name), "character()"),
+                                    name, nameQuote(name), "character()"),
                            ""), con)
           })
 
