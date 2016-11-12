@@ -41,7 +41,7 @@ packageSetup <- function(file = "setup.R", dir = ".", needPackage = TRUE) {
         else {
             if(!file.exists("DESCRIPTION"))
                 stop(gettextf("directory (%s) should be a package source directory, but no DESCRIPTION file",
-                          dQuote(getwd())))
+                          nameQuote(getwd())))
             package <- read.dcf("DESCRIPTION")[,"Package"][[1]]
         }
         ## use an environment acting like the package namespace, but
@@ -52,7 +52,7 @@ packageSetup <- function(file = "setup.R", dir = ".", needPackage = TRUE) {
     ff <- .findSetup(file)
     if(is.null(ff))
         stop(gettextf("No file %s in local directory or inst/tools",
-                      dQuote(file)))
+                      nameQuote(file)))
     options(topLevelEnvironment = env) # metadata for classes, methods, goes here
     eval(parse(ff),env)
 }

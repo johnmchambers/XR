@@ -222,7 +222,7 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
     if(!is.character(directory))
         stop(gettextf(
             "New path element must be a directory as a string, got %s",
-            dQuote(class(directory))))
+            nameQuote(class(directory))))
     if(is(Class, "classRepresentation"))
         className <- Class@className
     else if(is(Class, "character")) {
@@ -236,7 +236,7 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
     if(!extends(Class, "Interface"))
         stop(gettextf(
             "Class for path must extend \"Interface\", %s does not",
-            dQuote(className)))
+            nameQuote(className)))
     env <- XR::evaluatorActions
     actions <- env[[className]]
     if(is.null(actions))
@@ -278,7 +278,7 @@ serverImport <- function(Class, ..., onLoad = nzchar(packageName(where)), where 
     if(!extends(Class, "Interface"))
         stop(gettextf(
             "Class for path must extend \"Interface\", %s does not",
-            dQuote(className)))
+            nameQuote(className)))
     env <- XR::evaluatorActions
     actions <- env[[className]] ### use [[ to get NULL if not there
     expr <- as.call(list(quote(.self$Import), ...))
@@ -326,7 +326,7 @@ serverTask <- function(Class, command, onLoad = nzchar(packageName(where)), wher
     if(!extends(Class, "Interface"))
         stop(gettextf(
             "Class for path must extend \"Interface\", %s does not",
-            dQuote(className)))
+            nameQuote(className)))
     env <- XR::evaluatorActions
     ## TODO: should check here for the command being a suitable expression
     action <- command
@@ -573,7 +573,7 @@ the evaluator is then removed from the table of interface evaluators.'
         n <- evaluatorNumber(.self, FALSE)
         n_txt <- if(is.na(n)) "<Not in the evaluator table>" else
              gettextf("Evaluator number: %d", as.integer(n))
-        cat(gettextf("%s evaluator; Id: %s; %s\n", languageName, dQuote(evaluatorId), n_txt))
+        cat(gettextf("%s evaluator; Id: %s; %s\n", languageName, nameQuote(evaluatorId), n_txt))
     },
     Quit = function(...) { finalize(...) },
     ServerArglist = function(...) {
@@ -958,7 +958,19 @@ open connection or a file name.'
             assign(objName, object, envir = save)
         else
             dumpProxyFunction(save, object, objName, docText)
+    },
+    copy = function (shallow = FALSE) 
+    {
+        'An interface evaluator is always copied shallow to avoid infinite recursion.'
+        def <- .refClassDef
+        value <- new(def)
+        vEnv <- as.environment(value)
+        selfEnv <- as.environment(.self)
+        for (field in names(def@fieldClasses))
+            assign(field, get(field, envir = selfEnv), envir = vEnv)
+        value
     }
+
 )
 
 prototypeObject <- function(evaluator = getInterface())
@@ -1744,7 +1756,7 @@ quoteList <- function(what, more) {
 #' for that server object.  May be from a proxy class, but doesn't need to be.
 setGeneric("proxyName", function(x)
     stop(gettextf("No proxy name contained in objects of class %s",
-                  dQuote(class(x)))))
+                  nameQuote(class(x)))))
 
 #' @describeIn proxyName for this class, the name is the object (which extends class
 #' "character")
@@ -1769,7 +1781,7 @@ noServerData <- new.env() # a special value for the data slot of from_Server
         if(any(blank))
             gettextf("Empty names: %s", paste(which(blank), collapse = ", "))
         else
-            gettextf("Duplicate names: %s", paste(dQuote(ns[duplicated(ns)]), collapse = ", "))
+            gettextf("Duplicate names: %s", paste(nameQuote(ns[duplicated(ns)]), collapse = ", "))
     }
 }
 
@@ -1821,7 +1833,7 @@ setMethod("$", "from_Server",
               i <- match(name, names(x@data))
               if(is.na(i))
                   stop(gettextf("%s object of class %s has no %s field",
-                                x@language, dQuote(x@serverClass), dQuote(name)))
+                                x@language, nameQuote(x@serverClass), nameQuote(name)))
               x@data[[i]]
           })
 
@@ -1833,7 +1845,7 @@ setMethod("$", "from_Server",
 setMethod("show", "from_Server",
           function(object) {
               cat(gettextf("R conversion of %s object of class %s\n\nConverted fields:\n",
-                           object@language, dQuote(object@serverClass)))
+                           object@language, nameQuote(object@serverClass)))
               methods::show(as.list(object@fields))
           })
 
@@ -1868,9 +1880,9 @@ setMethod("initialize", "Unconvertible",
 setMethod("show", "Unconvertible",
           function(object) {
               cat(gettextf("Unconvertible %s object of class %s",
-                  object@language, dQuote(object@serverClass)))
+                  object@language, nameQuote(object@serverClass)))
               if(nzchar(object@serverModule))
-                  cat(gettextf(", module = %s", dQuote(object@serverModule)))
+                  cat(gettextf(", module = %s", nameQuote(object@serverModule)))
               cat("\n")
               if(length(object@attributes)) {
                   cat("Attributes:\n")
