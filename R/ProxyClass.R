@@ -195,30 +195,36 @@ setProxyClass <- function(Class, module = "",
         }
         ## construct the $initialize() method.
         if(nzchar(module))
-            importModule <- substitute(evaluator$Import(SERVERMODULE), list(SERVERMODULE = module))
+            importModule <- substitute(.evaluator$Import(SERVERMODULE), list(SERVERMODULE = module))
         else
             importModule <- NULL
         initMethod <- eval(substitute(
             function(..., .evaluator,
                      .serverObject) {
+                ## $initialize() method generated in XR::setProxyClass()
+                ## (can't use default in arg list, substitute doesn't find it)
+                if(missing(.evaluator)) {
+                    if(missing(.serverObject))
+                        .evaluator <- XR::getInterface(ICLASS, .makeNew = FALSE)
+                    else
+                        .evaluator <- XR::proxyEvaluator(.serverObject)
+                }
+                if(!nargs() && is.null(.evaluator))
+                    return() # allow prototype objects without a call to the server language
                 if(missing(.serverObject)) {
-                    ## (can't use default in arg list, substitute doesn't find it)
-                    IMPORT
-                    ## <TODO>: remove fields from ...; setup call with other args
-                    if(missing(.evaluator))
+                    if(is.null(.evaluator)) # this was the first use (unlikely!)
                         .evaluator <- XR::getInterface(ICLASS)
+                    IMPORT
+                    ## Note that this interprets ... as arguments to the server initializer, NOT as fields
+                    ## in a superclass.  You need a specialized $initialize() method to mix args, fields
                     .serverObject <- .evaluator$New(SERVERCLASS, SERVERMODULE, ...)
                 }
-                else {
-                    if(missing(.evaluator))
-                        .evaluator <- XR::proxyEvaluator(.serverObject)
-                    if(!missing(...)) # may be superclass and/or fields
+                else if(!missing(...)) # Specifying .serverobject= allows superclass and/or fields in ...
                         initFields(...)
-                }
                 if(is(.serverObject, "ProxyClassObject"))
                     proxy <- .serverObject$.proxyObject
                 else
-                    proxy <- .serverObject ## had better be an AssignedProxy
+                    proxy <- .serverObject # had better be an AssignedProxy
                 .proxyObject <<- proxy
                 .ev <<- .evaluator
             }, list(LANGUAGE = language, SERVERCLASS = ServerClass,
