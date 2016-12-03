@@ -17,12 +17,16 @@ export(evaluatorAction) # called from the startupActions() evaluator method
 export(evaluatorActions)
 export(dumpProxyFunction) # called from $SaveProxyFunction
 export(ProxyClass) # called from initialize methods
+export(proxyEvaluator)
 
 export(setProxyClass)
 
 export(Interface, ServerClassDef)
 exportClass(Interface, ServerClassDef)
 exportClass(ProxyClassObject, vector_R, ProxyFunction)
+
+export(ProxyClass)
+exportClass(ProxyClass)
 
 export(typeToJSON)
 export(noScalar)

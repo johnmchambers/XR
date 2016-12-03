@@ -19,8 +19,21 @@ ProxyClass$lock("language")
 #' @template reference
 ProxyClassObject <- setRefClass("ProxyClassObject",
                                 fields = c(.proxyObject =  "AssignedProxy",
-                                .proxyClass = "ProxyClass", .ev = "Interface"),
-                                contains = "ProxyObject",
+                                           .proxyClass = "ProxyClass", .ev = "Interface",
+                                           serverObject = function(value) {
+                                               if(missing(value))
+                                                   .ev$ProxyClassObject(.proxyObject)
+                                               else {
+                                                   if(is(value, "ProxyClassObject"))
+                                                       value <- value$.proxyObject
+                                                   if(!is(value, "AssignedProxy"))
+                                                       stop(gettextf("The server object to assign must be a proxy; got class %s",
+                                                                     XR::nameQuote(class(value))))
+                                                   .proxyObject <<- value
+                                               }
+                                           }
+                                           ),
+                                contains = "ProxyObject"
                                 )
 
 
@@ -70,11 +83,35 @@ setMethod("objectAsJSON", "ProxyClassObject",
               objectAsJSON(object, prototype, level)
           })
 
+.proxyObjectFields <- names(ProxyClassObject$fields())
+## to assist in extending proxy classes, the show() method is
+## defined as a functional method, with access to the XR namespace
+setMethod("show", "ProxyClassObject",
+          function(object) {
+              thisClass <- class(object)
+              cat(gettextf("R Object of class %s, for ",
+                           XR::nameQuote(thisClass)))
+              methods::show(object$.proxyObject)
+              if(thisClass != "ProxyClassObject") { # a subclass
+                  fields <- names(object$.refClassDef@fieldClasses)
+                  fields <- fields[!fields %in% .proxyObjectFields]
+                  for (fi in fields) {
+                      cat("Field \"", fi, "\":\n", sep = "")
+                      methods::show(object$field(fi))
+                  }
+              }
+          })
+                  
+
 ProxyClassObject$methods(
     show = function() {
+<<<<<<< HEAD
         cat(gettextf("R Object of class %s, for ",
                      nameQuote(class(.self))))
         methods::show(.proxyObject)
+=======
+        base::show(.self)
+>>>>>>> extProxy
     })
 
 
@@ -164,31 +201,38 @@ setProxyClass <- function(Class, module = "",
         }
         ## construct the $initialize() method.
         if(nzchar(module))
-            importModule <- substitute(evaluator$Import(SERVERMODULE), list(SERVERMODULE = module))
+            importModule <- substitute(.evaluator$Import(SERVERMODULE), list(SERVERMODULE = module))
         else
             importModule <- NULL
         initMethod <- eval(substitute(
-            function(..., evaluator,
+            function(..., .evaluator,
                      .serverObject) {
-                if(missing(evaluator))
-                    
+                ## $initialize() method generated in XR::setProxyClass()
+                ## (can't use default in arg list, substitute doesn't find it)
+                if(missing(.evaluator)) {
+                    if(missing(.serverObject))
+                        .evaluator <- XR::getInterface(ICLASS, .makeNew = FALSE)
+                    else
+                        .evaluator <- XR::proxyEvaluator(.serverObject)
+                }
+                if(!nargs() && is.null(.evaluator))
+                    return() # allow prototype objects without a call to the server language
                 if(missing(.serverObject)) {
-                    ## (can't use default in arg list, substitute doesn't find it)
+                    if(is.null(.evaluator)) # this was the first use (unlikely!)
+                        .evaluator <- XR::getInterface(ICLASS)
                     IMPORT
-                    evaluator <- XR::getInterface(ICLASS)
-                    .serverObject <- evaluator$New(SERVERCLASS, SERVERMODULE, ...)
+                    ## Note that this interprets ... as arguments to the server initializer, NOT as fields
+                    ## in a superclass.  You need a specialized $initialize() method to mix args, fields
+                    .serverObject <- .evaluator$New(SERVERCLASS, SERVERMODULE, ...)
                 }
-                if(is(.serverObject, "ProxyClassObject")) {
+                else if(!missing(...)) # Specifying .serverobject= allows superclass and/or fields in ...
+                        initFields(...)
+                if(is(.serverObject, "ProxyClassObject"))
                     proxy <- .serverObject$.proxyObject
-                    evaluator <- .serverObject$.ev
-                }
-                else {
-                    proxy <- .serverObject ## had better be an AssignedProxy
-                    evaluator <- .serverObject@evaluator
-                }
+                else
+                    proxy <- .serverObject # had better be an AssignedProxy
                 .proxyObject <<- proxy
-                .proxyClass <<- XR::ProxyClass(ServerClass = SERVERCLASS, ServerModule = SERVERMODULE, language = LANGUAGE, evaluatorClass = ICLASS)
-                .ev <<- evaluator
+                .ev <<- .evaluator
             }, list(LANGUAGE = language, SERVERCLASS = ServerClass,
                     ICLASS = evaluatorClass, SERVERMODULE = module,
                     IMPORT = importModule)))
@@ -697,6 +741,9 @@ setMethod("proxyName", "ProxyClassObject",
           function(x)
               callGeneric(x$.proxyObject))
 
-
-
-
+proxyEvaluator <- function(object) {
+    if(is(object, "AssignedProxy"))
+        object@evaluator
+    else
+        object$.ev
+}
