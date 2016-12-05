@@ -105,13 +105,9 @@ setMethod("show", "ProxyClassObject",
 
 ProxyClassObject$methods(
     show = function() {
-<<<<<<< HEAD
         cat(gettextf("R Object of class %s, for ",
                      nameQuote(class(.self))))
         methods::show(.proxyObject)
-=======
-        base::show(.self)
->>>>>>> extProxy
     })
 
 
