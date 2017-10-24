@@ -1,8 +1,8 @@
 Package: XR
 Type: Package
 Title: A Structure for Interfaces from R
-Version: 0.7
-Date: 2016-08-27
+Version: 0.7.1
+Date: 2017-10-23
 Author: John M. Chambers
 Maintainer: John Chambers <jmc@r-project.org>
 Description: Support for interfaces from R to other languages,
@@ -13,4 +13,4 @@ License: GPL (>= 2)
 Imports: methods, utils, jsonlite
 NeedsCompilation: no
 Packaged: 2016-07-05 21:56:17 UTC; jmc
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

@@ -22,6 +22,4 @@ documentation of this package.  To open the pdf file from R:
   `RShowDoc("Chapter_XR", package = "XR")`
 
 
-*CRAN Version*: A version of this package (currently version 0.7) is
- available from the CRAN repository.
 

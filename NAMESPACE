@@ -34,6 +34,7 @@ export(noScalar)
 export(packageSetup)
 
 export(proxyName)
+export(isProxy)
 
 export(fixHelpTopic)
 export(from_Server)

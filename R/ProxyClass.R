@@ -1,6 +1,12 @@
 ## Classes that are proxies for interfaces
 
-## a description of a class in the server language
+#' A Class to Describe Classes in the Server Language
+#'
+#' Used by initialize() methods for proxy class objects and therefore exported for the sake of
+#' packages using the XR model.  Not typically needed by end users.
+#' @field ServerClass the name of the corresponding server language class.
+#' @field language the name of the server language (locked)
+#' @field evaluatorClass the class for an interface evaluator for this proxy class.
 ProxyClass <- setRefClass("ProxyClass",
                           fields = c(ServerClass = "character",
                           ServerModule =  "character",
@@ -705,7 +711,12 @@ setMethod("writeFakeObject", "refClassRepresentation",
                            ""), con)
           })
 
-
+#' Write A Proxy Function to a File or Connection
+#'
+#' This function is called by the \code{$SaveProxyFunction()} method of an evaluator object.  It is exported
+#' for the convenience of packages inheriting from XR and would not normally be called by a user.
+#' @param file the file or connection for writing the function text.
+#' @param object,objName,docText arguments supplied by the evaluator method.
 dumpProxyFunction <-
 function(file, object, objName = object@name, docText) {
     if(identical(file, TRUE))
@@ -737,9 +748,24 @@ setMethod("proxyName", "ProxyClassObject",
           function(x)
               callGeneric(x$.proxyObject))
 
+#' The Evaluator Function Object Referred to from a Proxy Objec
+#'
+#' Any proxy for a server language object contains a reference to the interface evaluator object
+#' used to create the proxy object.  This function retrieves the evaluator (whether or not there is
+#' a proxy class for this object).  The function is called from specialized methods for particular
+#' server langauge classes, as part of a package using the XR package.  End users will not typically
+#' need to call it directly; it is exported to simplify life for the extending package.
+#' @param object any proxy object
 proxyEvaluator <- function(object) {
     if(is(object, "AssignedProxy"))
         object@evaluator
     else
         object$.ev
 }
+
+#' Test if an Object is a Proxy
+#'
+#' Returns \code{TRUE} if \code{object} is either a simple proxy or an object from a proxy class.
+#' @param object Any object.
+isProxy <- function(object)
+    is(object, "AssignedProxy") || is(object, "ProxyClassObject")
