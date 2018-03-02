@@ -171,7 +171,7 @@ setMethod("evaluatorAction", "language",
 #' @describeIn evaluatorAction a "pathEl" object to add to the server search path.
 setMethod("evaluatorAction", "pathEl",
           function(action, ev)
-              ev$AddToPath(action, action@package, action@pos))
+              ev$AddToPath(action@.Data, action@package, action@pos))
 
 
 
@@ -211,8 +211,9 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
     ## note:  directory is not allowed to be missing.  The server language specializations will
     ## supply a default of the language name, as per $AddToPath().
     el <- pathEl(directory, package = package, pos = pos)
-    if(is.na(onLoad))# if from a source package, set load action
-        onLoad <- nzchar(el@package) # use slot, iniitalize() method will have set it.
+    if(is.na(onLoad)) # set load action if from installation phase
+        onLoad <- nzchar(el@package) && # use slot, iniitalize() method will have set it.
+            !environmentIsLocked(where) # else can't do evalOnLoad()
     if(onLoad) {
         action <- as.call(list(quote(XR::serverAddToPath),Class, directory,package, pos))
         action$onLoad <- FALSE
@@ -238,9 +239,10 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
             "Class for path must extend \"Interface\", %s does not",
             nameQuote(className)))
     env <- XR::evaluatorActions
+    ## add el to the actions -- evalAction() has a method for this class
     actions <- env[[className]]
     if(is.null(actions))
-        actions <- list(el) # the previously constructed object of class pathEl
+        actions <- list(el) 
     else
         actions <- c(actions, list(el))
     env[[className]] <- actions
@@ -257,7 +259,9 @@ serverAddToPath <- function(Class, directory, package = utils::packageName(topen
 #' interface class, and for the current evaluator if one exists.
 #'
 #' @param ... arguments to pass to the evaluator's \code{$Import()} method
-serverImport <- function(Class, ..., onLoad = nzchar(packageName(where)), where = topenv(parent.frame())) {
+serverImport <- function(Class, ...,
+                         onLoad = nzchar(packageName(where)) && !environmentIsLocked(where),
+                         where = topenv(parent.frame())) {
     ## if from a source package, set load action
     if(onLoad) {
         action <- as.call(list(quote(XR::serverImport),Class, ...))
