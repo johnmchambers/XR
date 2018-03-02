@@ -1,3 +1,5 @@
 man-roxygen
 README.md
 R/TAGS
+^.*\.Rproj$
+^\.Rproj\.user$

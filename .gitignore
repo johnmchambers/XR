@@ -3,3 +3,6 @@
 .RData
 R/TAGS
 .DS_Store
+XR.Rproj
+.Rbuildignore
+
