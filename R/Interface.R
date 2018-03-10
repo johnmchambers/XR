@@ -941,11 +941,15 @@ generally be shared among languages, must unserialize the entire file.'
         con <- open(file, "r")
         value <- list()
         repeat {
-            tryCatch( value <- append(value, base::unserialize(con)),
-                     error = function(e) break
+            try <- tryCatch( append(value, base::unserialize(con)),
+                     error = function(e) e
                      )
+            if(is(try, "condition")) # test for actual error?
+                break
+            else
+              value <- try
         }
-        if(!all && length(value)) {
+        if(!all && length(value) > 0) {
             if(length(value) == 1)
                 value <- value[[1]]
             else
