@@ -11,8 +11,8 @@ serverAddToPath(Class, directory,
   package = utils::packageName(topenv(parent.frame())), pos = NA,
   onLoad = NA, where = topenv(parent.frame()))
 
-serverImport(Class, ..., onLoad = nzchar(packageName(where)),
-  where = topenv(parent.frame()))
+serverImport(Class, ..., onLoad = nzchar(packageName(where))  &&
+                 !environmentIsLocked(where),  where = topenv(parent.frame()))
 
 serverTask(Class, command, onLoad = nzchar(packageName(where)),
   where = topenv(parent.frame()))
