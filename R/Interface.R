@@ -1119,15 +1119,18 @@ setMethod("asRObject", "ProxyObject", # typically, an element of a list
 #' elements of the suitable vector object. (e.g, ".5+3i")
 setMethod("asRObject", "vector_R", # the class for representing R basic vector types
           function(object, evaluator) {
-              ## types that must be formatted by server
-              if(object@type %in% .formattedTypes)
-                  value <- .asRParsed(object@data)
-              else
-                  value <- as(object@data, object@type)
+              data <- object@data
               if(length(object@missing)) {
                   whichMissing <- unlist(object@missing)
-                  value[whichMissing] <- NA
+                  data <- lapply(data, function(x) if(is.null(x)) NA else x)
               }
+              if(object@type != "list")
+                  data <- unlist(data)
+              ## types that must be formatted by server
+              if(object@type %in% .formattedTypes)
+                  value <- .asRParsed(data)
+              else
+                  value <- as(data, object@type)
               value
           }
           )
@@ -1170,7 +1173,7 @@ setMethod("asRObject", "data.frame",
     scan(txt, complex())
 }
 
-.asRMethods <- list(matrix = base::array,
+.asRMethods <- list(matrix = base::array, array = base::array,
                     AssignedProxy = AssignedProxy, raw = .scanRaw, complex = .scanComplex
                     )
 
