@@ -1107,6 +1107,7 @@ setMethod("asRObject", "ProxyObject", # typically, an element of a list
 
 .formattedTypes <- c("complex") # others? raw?
 
+NaNi <- complex(1,0.,NaN) # kludge because R parser can't do it (although R prints this out)
 .asRParsed <- function(data) {
     txt <- paste0("c(", paste(as.character(data), collapse = ", "), ")")
     eval(parse(text = txt))
